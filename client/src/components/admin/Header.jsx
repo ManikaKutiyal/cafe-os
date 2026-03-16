@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
+import { useAuth } from '../../context/AuthContext';
 import {
   IconSearch, IconBell, IconSun, IconMoon, IconUser,
   IconSettings, IconLogout, IconChevronD, IconX,
@@ -24,6 +25,7 @@ const NOTIFS = [
 
 export default function Header({ sidebarOpen }) {
   const { dark, toggle } = useTheme();
+  const { user, logoutUser } = useAuth();
   const navigate = useNavigate();
   const [searchVal, setSearchVal] = useState('');
   const [searchFocus, setSearchFocus] = useState(false);
@@ -35,6 +37,15 @@ export default function Header({ sidebarOpen }) {
 
   const sidebarW = sidebarOpen ? '240px' : '64px';
   const unreadCount = NOTIFS.filter((n) => n.unread).length;
+  const displayName = user?.name || user?.email || 'User';
+  const displayRole = user?.role === 'superadmin' ? 'Super Admin' : (user?.role || 'User');
+  const initials = displayName
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0])
+    .join('')
+    .toUpperCase() || 'U';
 
   const filteredSuggestions = searchVal
     ? SEARCHES.filter((s) => s.label.toLowerCase().includes(searchVal.toLowerCase()))
@@ -179,12 +190,16 @@ export default function Header({ sidebarOpen }) {
             onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-hover)')}
             onMouseLeave={(e) => (e.currentTarget.style.background = profileOpen ? 'var(--bg-hover)' : 'var(--bg-card)')}
           >
-            <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #C67C4E, #E09A6E)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 10 }}>SA</div>
-            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>Super Admin</span>
+            <div style={{ width: 26, height: 26, borderRadius: '50%', background: 'linear-gradient(135deg, #C67C4E, #E09A6E)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: 10 }}>{initials}</div>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-2)' }}>{displayRole}</span>
             <IconChevronD size={12} style={{ color: 'var(--text-3)' }} />
           </button>
           {profileOpen && (
             <div style={{ position: 'absolute', top: 'calc(100% + 8px)', right: 0, width: 180, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 11, boxShadow: 'var(--shadow-lg)', zIndex: 50, overflow: 'hidden' }}>
+              <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>{displayName}</div>
+                {user?.email && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{user.email}</div>}
+              </div>
               {[
                 { icon: <IconUser size={13} />, label: 'Profile' },
                 { icon: <IconSettings size={13} />, label: 'Settings' },
@@ -198,6 +213,13 @@ export default function Header({ sidebarOpen }) {
                       style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '9px 14px', background: 'none', border: 'none', textAlign: 'left', fontSize: 13, color: item.danger ? '#ef4444' : 'var(--text-2)', cursor: 'pointer', transition: 'background 0.1s' }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = item.danger ? 'rgba(239,68,68,0.06)' : 'var(--bg-hover)')}
                       onMouseLeave={(e) => (e.currentTarget.style.background = 'none')}
+                      onClick={() => {
+                        if (item.label === 'Sign out') {
+                          logoutUser();
+                          navigate('/login', { replace: true });
+                        }
+                        setProfileOpen(false);
+                      }}
                     >
                       {item.icon}{item.label}
                     </button>

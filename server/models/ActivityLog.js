@@ -30,4 +30,4 @@ activityLogSchema.pre('save', function () {
   if (!this.targetEntity) this.targetEntity = this.target;
 });
 
-module.exports = mongoose.model('ActivityLog', activityLogSchema);
+module.exports = mongoose.models.ActivityLog || mongoose.model('ActivityLog', activityLogSchema);

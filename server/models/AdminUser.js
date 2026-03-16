@@ -57,4 +57,4 @@ adminUserSchema.pre('findOneAndUpdate', function () {
 
 adminUserSchema.statics.ROLE_PERMISSIONS = ROLE_PERMISSIONS;
 
-module.exports = mongoose.model('AdminUser', adminUserSchema);
+module.exports = mongoose.models.AdminUser || mongoose.model('AdminUser', adminUserSchema);

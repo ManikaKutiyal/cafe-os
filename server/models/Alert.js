@@ -17,4 +17,4 @@ const alertSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model('Alert', alertSchema);
+module.exports = mongoose.models.Alert || mongoose.model('Alert', alertSchema);

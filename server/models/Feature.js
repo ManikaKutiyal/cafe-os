@@ -23,4 +23,4 @@ featureSchema.pre('save', async function () {
   this.isEnabled = this.globalEnabled;
 });
 
-module.exports = mongoose.model('Feature', featureSchema);
+module.exports = mongoose.models.Feature || mongoose.model('Feature', featureSchema);

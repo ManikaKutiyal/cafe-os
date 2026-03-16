@@ -47,5 +47,5 @@ tenantSchema.pre('save', async function () {
   }
 });
 
-module.exports = mongoose.model('Tenant', tenantSchema);
+module.exports = mongoose.models.Tenant || mongoose.model('Tenant', tenantSchema);
 module.exports.PLAN_ORDER_LIMITS = PLAN_ORDER_LIMITS;
