@@ -53,4 +53,11 @@ export const allRoutes = [
     { path: "/admin/tenant-usage", element: <TenantUsage /> },
     { path: "/admin/alerts", element: <SystemAlerts /> },
     { path: "/admin/billing", element: <BillingHistory /> },
+import React from 'react';
+import { ownerRoutes } from './ownerRoutes';
+import LandingPage from '../pages/LandingPage/LandingPage';
+
+export const allRoutes = [
+    ...ownerRoutes,
+    { path: '/', element: <LandingPage /> },
 ];

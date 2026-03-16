@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { allRoutes } from './routes';
+import { allRoutes } from './routes.jsx';
 
 /**
  * RootRouter Component
