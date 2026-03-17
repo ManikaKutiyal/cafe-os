@@ -1,6 +1,7 @@
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const Cafe = require("../models/Cafe");
+const Tenant = require("../../models/Tenant");
 
 const generateToken = (user) => {
   // include role in JWT
@@ -15,6 +16,68 @@ const isStrongPassword = (password) => {
   // At least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special
   const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d]).{8,}$/;
   return strongRegex.test(password);
+};
+
+const genTenantId = () => "tenant_" + Math.floor(1000 + Math.random() * 9000);
+
+const genAdminEmail = (cafeName) => {
+  const slug = (cafeName || "cafe")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "")
+    .slice(0, 20);
+  return `admin@${slug}.com`;
+};
+
+const genPassword = (length = 12) => {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789@#$!";
+  let pwd = "";
+  for (let i = 0; i < length; i++) {
+    pwd += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return pwd;
+};
+
+const planExpiry = (plan) => {
+  const d = new Date();
+  const months = { Free: 1, Starter: 1, Pro: 12, Growth: 12, Enterprise: 12 };
+  d.setMonth(d.getMonth() + (months[plan] || 1));
+  return d;
+};
+
+const ensureTenant = async ({ cafeName, ownerName, email }) => {
+  const existing = await Tenant.findOne({ email });
+  if (existing) {
+    const updates = {};
+    if (!existing.cafeName && cafeName) updates.cafeName = cafeName;
+    if (!existing.ownerName && ownerName) updates.ownerName = ownerName;
+    if (Object.keys(updates).length) {
+      return Tenant.findByIdAndUpdate(existing._id, updates, { new: true });
+    }
+    return existing;
+  }
+
+  let tenantId = genTenantId();
+  let tries = 0;
+  while (await Tenant.findOne({ tenantId })) {
+    tenantId = genTenantId();
+    tries += 1;
+    if (tries > 5) throw new Error("Unable to generate unique tenant id");
+  }
+
+  const subscriptionPlan = "Free";
+  return Tenant.create({
+    tenantId,
+    cafeName,
+    ownerName,
+    email,
+    adminEmail: genAdminEmail(cafeName),
+    tempPassword: genPassword(),
+    subscriptionPlan,
+    subscriptionStartDate: new Date(),
+    planExpiryDate: planExpiry(subscriptionPlan),
+    status: "Active",
+    lastActiveAt: new Date(),
+  });
 };
 
 // POST /api/auth/signup
@@ -38,6 +101,13 @@ const signup = async (req, res) => {
 
     const cafe = await Cafe.create({ cafeName, ownerEmail: email });
     const user = await User.create({ name: ownerName, email, password, role: "owner", cafeId: cafe._id });
+    try {
+      await ensureTenant({ cafeName, ownerName, email });
+    } catch (tenantErr) {
+      await User.findByIdAndDelete(user._id).catch(() => {});
+      await Cafe.findByIdAndDelete(cafe._id).catch(() => {});
+      throw tenantErr;
+    }
 
     const token = generateToken(user);
     res.status(201).json({
