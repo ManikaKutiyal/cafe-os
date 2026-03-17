@@ -5,7 +5,7 @@ import { createTenant } from '../../services/adminApi';
 import { Spinner } from '../../components/admin/SkeletonLoader';
 
 const EMPTY = {
-  cafeName: '', ownerName: '', email: '', phone: '',
+  cafeName: '', ownerName: '', email: '',
   subscriptionPlan: 'Free', status: 'Active',
 };
 const PLAN_DESC = {
@@ -140,10 +140,6 @@ export default function TenantManagement() {
                 <Label>Owner Email *</Label>
                 <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)} style={inp} placeholder="e.g. rahul@morninghub.com" />
               </div>
-              <div>
-                <Label>Phone</Label>
-                <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} style={inp} placeholder="+91 98765 43210" />
-              </div>
             </div>
 
             {/* Row 2: plan + status */}
@@ -175,7 +171,6 @@ export default function TenantManagement() {
             {/* Auto-gen preview */}
             <div style={{ padding: '10px 14px', background: 'var(--bg-hover)', borderRadius: 9, fontSize: 12, color: 'var(--text-3)', marginBottom: 16, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
               <span>🔑 Tenant ID: <strong>auto-generated</strong></span>
-              <span>✉ Login email: <strong>{form.email || 'from form'}</strong></span>
               <span>🔒 Password: <strong>auto-generated</strong></span>
             </div>
 
