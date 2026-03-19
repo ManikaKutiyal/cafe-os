@@ -1,5 +1,7 @@
 const Tenant = require('../models/Tenant');
 const ActivityLog = require('../models/ActivityLog');
+const User = require('../models/User');
+const Cafe = require('../models/Cafe');
 
 /* ── Credential generators ─────────────────────────────── */
 function genTenantId() {
@@ -84,25 +86,63 @@ const getTenantById = async (req, res) => {
 /* ── POST /api/admin/tenants ────────────────────────────── */
 const createTenant = async (req, res) => {
   try {
-    const { cafeName, subscriptionPlan = 'Free', adminUser = 'SuperAdmin' } = req.body;
+    const {
+      cafeName,
+      ownerName,
+      email,
+      subscriptionPlan = 'Free',
+      adminUser = 'SuperAdmin',
+    } = req.body;
+
+    if (!cafeName || !ownerName || !email) {
+      return res.status(400).json({ success: false, message: 'Cafe name, owner name, and email are required' });
+    }
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'Owner user already exists with this email' });
+    }
 
     // Auto-generate lifecycle fields
-    const tenantId    = genTenantId();
+    let tenantId = genTenantId();
+    let tries = 0;
+    while (await Tenant.findOne({ tenantId })) {
+      tenantId = genTenantId();
+      tries += 1;
+      if (tries > 5) return res.status(500).json({ success: false, message: 'Unable to generate tenant id' });
+    }
     const adminEmail  = genAdminEmail(cafeName || 'cafe');
     const tempPassword = genPassword();
     const subscriptionStartDate = new Date();
     const planExpiryDate = planExpiry(subscriptionPlan);
 
-    const tenant = new Tenant({
-      ...req.body,
-      tenantId,
-      adminEmail,
-      tempPassword,
-      subscriptionStartDate,
-      planExpiryDate,
-      lastActiveAt: new Date(),
-    });
-    await tenant.save();
+    let tenant;
+    let cafe;
+    try {
+      tenant = new Tenant({
+        ...req.body,
+        tenantId,
+        adminEmail,
+        tempPassword,
+        subscriptionStartDate,
+        planExpiryDate,
+        lastActiveAt: new Date(),
+      });
+      await tenant.save();
+
+      cafe = await Cafe.create({ cafeName, ownerEmail: email });
+      await User.create({
+        name: ownerName,
+        email,
+        password: tempPassword,
+        role: 'owner',
+        cafeId: cafe._id,
+      });
+    } catch (error) {
+      if (tenant?._id) await Tenant.findByIdAndDelete(tenant._id).catch(() => {});
+      if (cafe?._id) await Cafe.findByIdAndDelete(cafe._id).catch(() => {});
+      throw error;
+    }
 
     await log(
       'TENANT_CREATED',
@@ -114,7 +154,7 @@ const createTenant = async (req, res) => {
     res.status(201).json({
       success: true,
       data: tenant,
-      credentials: { tenantId, adminEmail, tempPassword },
+      credentials: { tenantId, ownerEmail: email, tempPassword },
     });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });

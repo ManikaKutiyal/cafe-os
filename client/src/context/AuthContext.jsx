@@ -6,12 +6,20 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null); // eslint-disable-line
+  const [isHydrating, setIsHydrating] = useState(true);
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     const storedUser = localStorage.getItem("user");
     if (storedToken) setToken(storedToken);
-    if (storedUser) setUser(JSON.parse(storedUser));
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        localStorage.removeItem("user");
+      }
+    }
+    setIsHydrating(false);
   }, []);
 
   const loginUser = (data) => {
@@ -29,7 +37,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, loginUser, logoutUser }}>
+    <AuthContext.Provider value={{ user, token, isHydrating, loginUser, logoutUser }}>
       {children}
     </AuthContext.Provider>
   );

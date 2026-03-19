@@ -5,7 +5,7 @@ import { createTenant } from '../../services/adminApi';
 import { Spinner } from '../../components/admin/SkeletonLoader';
 
 const EMPTY = {
-  cafeName: '', ownerName: '', email: '', phone: '',
+  cafeName: '', ownerName: '', email: '',
   subscriptionPlan: 'Free', status: 'Active',
 };
 const PLAN_DESC = {
@@ -46,12 +46,12 @@ function CredBox({ creds, onClose }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: '#C67C4E' }}>✅ Tenant Created Successfully</div>
-          <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>Save these credentials — the password cannot be recovered later.</div>
+          <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>Save these login credentials — the password cannot be recovered later.</div>
         </div>
         <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-3)', fontSize: 18, lineHeight: 1 }}>✕</button>
       </div>
       <Row label="Tenant ID"      value={creds.tenantId}    field="tenantId" />
-      <Row label="Admin Email"    value={creds.adminEmail}  field="adminEmail" />
+      <Row label="Login Email"    value={creds.ownerEmail || creds.adminEmail}  field="ownerEmail" />
       <Row label="Temp Password"  value={creds.tempPassword} field="tempPassword" />
       <div style={{ marginTop: 10, padding: '8px 12px', background: 'rgba(245,158,11,0.08)', borderRadius: 8, fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>
         ⚠ Share these credentials securely with the café owner. Instruct them to change the password on first login.
@@ -122,7 +122,7 @@ export default function TenantManagement() {
         <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 24, marginBottom: 24, boxShadow: 'var(--shadow-sm)' }}>
           <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--text-1)', marginBottom: 4 }}>New Café Tenant</div>
           <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 20 }}>
-            Tenant ID, admin email and temporary password will be generated automatically.
+            Tenant ID and temporary password will be generated automatically.
           </div>
 
           <form onSubmit={handleCreate}>
@@ -139,10 +139,6 @@ export default function TenantManagement() {
               <div>
                 <Label>Owner Email *</Label>
                 <input required type="email" value={form.email} onChange={(e) => set('email', e.target.value)} style={inp} placeholder="e.g. rahul@morninghub.com" />
-              </div>
-              <div>
-                <Label>Phone</Label>
-                <input type="tel" value={form.phone} onChange={(e) => set('phone', e.target.value)} style={inp} placeholder="+91 98765 43210" />
               </div>
             </div>
 
@@ -175,7 +171,6 @@ export default function TenantManagement() {
             {/* Auto-gen preview */}
             <div style={{ padding: '10px 14px', background: 'var(--bg-hover)', borderRadius: 9, fontSize: 12, color: 'var(--text-3)', marginBottom: 16, display: 'flex', gap: 20, flexWrap: 'wrap' }}>
               <span>🔑 Tenant ID: <strong>auto-generated</strong></span>
-              <span>✉ Admin email: <strong>{form.cafeName ? `admin@${form.cafeName.toLowerCase().replace(/[^a-z0-9]+/g,'').slice(0,20)}.com` : 'auto-generated'}</strong></span>
               <span>🔒 Password: <strong>auto-generated</strong></span>
             </div>
 
