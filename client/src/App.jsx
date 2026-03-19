@@ -1,8 +1,27 @@
-import React from 'react';
-import RootRouter from './routes/RootRouter';
+import './App.css'
+import RootRouter from './routes/RootRouter'
+import { ThemeProvider } from './context/ThemeContext'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
-  return <RootRouter />;
+  return (
+    <ThemeProvider>
+      <div className="App">
+        <Toaster
+          position="top-right"
+          toastOptions={{
+            duration: 2800,
+            style: {
+              background: 'var(--bg-card)',
+              color: 'var(--text-1)',
+              border: '1px solid var(--border)',
+            },
+          }}
+        />
+        <RootRouter />
+      </div>
+    </ThemeProvider>
+  )
 }
 
-export default App;
+export default App

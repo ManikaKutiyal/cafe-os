@@ -1,6 +1,19 @@
+/**
+ * Central Routes Registry
+ *
+ * This file aggregates routes from all feature modules.
+ * To add a new feature:
+ * 1. Import its routes array.
+ * 2. Spread it into the 'allRoutes' array.
+ *
+ * This pattern minimizes merge conflicts.
+ */
+
 import React from "react";
-import { Navigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext";
+import { ownerRoutes } from "./ownerRoutes";
+import { adminRoutes } from "./adminRoutes";
+import LandingPage from "../pages/LandingPage/LandingPage";
+import Unauthorized from "../pages/Unauthorized";
 
 // Page Imports
 import LandingPage from "../pages/LandingPage/LandingPage";
@@ -32,46 +45,8 @@ export const ProtectedRoute = ({ children }) => {
  * Centralized Route Configuration
  */
 export const allRoutes = [
-    {
-        path: "/",
-        element: <LandingPage />
-    },
-    {
-        path: "/login",
-        element: <Login />
-    },
-    {
-        path: "/dashboard",
-        element: (
-            <ProtectedRoute>
-                <DashboardLayout />
-            </ProtectedRoute>
-        ),
-        children: [
-            {
-                index: true,
-                element: <Dashboard />
-            },
-            {
-                path: "menu",
-                element: <MenuManagement />
-            },
-            {
-                path: "inventory",
-                element: <InventoryControl />
-            },
-            {
-                path: "staff",
-                element: <StaffManagement />
-            },
-            {
-                path: "customers",
-                element: <CustomerCRM />
-            }
-        ]
-    },
-    {
-        path: "*",
-        element: <Navigate to="/" replace />
-    }
+  ...ownerRoutes,
+  ...adminRoutes,
+  { path: "/", element: <LandingPage /> },
+  { path: "/unauthorized", element: <Unauthorized /> },
 ];
