@@ -4,11 +4,11 @@ import LoginPage from '../pages/LoginPage';
 import SignupPage from '../pages/SignupPage';
 import ProtectedRoute from '../components/ProtectedRoute';
 import DashboardLayout from '../layouts/DashboardLayout';
-import Dashboard from '../pages/Dashboard';
-import MenuManagement from '../pages/MenuManagement';
-import InventoryControl from '../pages/InventoryControl';
-import StaffManagement from '../pages/StaffManagement';
-import CustomerCRM from '../pages/CustomerCRM';
+import Dashboard from '../pages/Owner/Dashboard';
+import MenuManagement from '../pages/Owner/MenuManagement';
+import InventoryControl from '../pages/Owner/InventoryControl';
+import StaffManagement from '../pages/Owner/StaffManagement';
+import CustomerCRM from '../pages/Owner/CustomerCRM';
 
 export const ownerRoutes = [
   {
