@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
-const { getInvoices, createInvoice, updateInvoice, getBillingSummary, seedInvoices, cleanupInvoices } = require('../controllers/invoiceController');
+const {
+  getInvoices,
+  createInvoice,
+  updateInvoice,
+  getBillingSummary,
+  getTenantBillingDetails,
+  seedInvoices,
+  cleanupInvoices,
+} = require('../controllers/invoiceController');
 
 router.get('/summary', getBillingSummary);
 router.get('/tenant/:tenantId/details', getTenantBillingDetails);

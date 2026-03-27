@@ -578,4 +578,12 @@ const cleanupInvoices = async (req, res) => {
   }
 };
 
-module.exports = { getInvoices, createInvoice, updateInvoice, getBillingSummary, seedInvoices, cleanupInvoices };
+module.exports = {
+  getInvoices,
+  createInvoice,
+  updateInvoice,
+  getBillingSummary,
+  getTenantBillingDetails,
+  seedInvoices,
+  cleanupInvoices,
+};
