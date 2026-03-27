@@ -3,6 +3,7 @@ const router = express.Router();
 const { getInvoices, createInvoice, updateInvoice, getBillingSummary, seedInvoices, cleanupInvoices } = require('../controllers/invoiceController');
 
 router.get('/summary', getBillingSummary);
+router.get('/tenant/:tenantId/details', getTenantBillingDetails);
 router.post('/seed', seedInvoices);
 router.post('/cleanup', cleanupInvoices);
 router.get('/', getInvoices);

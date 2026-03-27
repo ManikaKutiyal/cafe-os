@@ -14,12 +14,14 @@ import SystemAlerts from "../pages/admin/SystemAlerts";
 import BillingHistory from "../pages/admin/BillingHistory";
 
 const withSuperAdmin = (element) => (
-  <ProtectedRoute allowedRoles={["superadmin"]}>{element}</ProtectedRoute>
+  <ProtectedRoute allowedRoles={['superadmin']}>{element}</ProtectedRoute>
 );
 
-export const adminRoutes = [
-  // Legacy super-admin dashboard (existing)
-  { path: "/admin", element: withSuperAdmin(<Dashboard />) },
+const withSuspense = (Component) => (
+  <Suspense fallback={<PageSpinner message="Loading admin workspace..." />}>
+    <Component />
+  </Suspense>
+);
 
   // New Admin Portal routes
   { path: "/admin/dashboard", element: withSuperAdmin(<AdminDashboard />) },
