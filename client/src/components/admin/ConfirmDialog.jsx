@@ -1,59 +1,99 @@
-import { IconAlert, IconX, IconCheck, IconTrash } from './icons';
-
-export default function ConfirmDialog({ open, title, message, confirmLabel = 'Confirm', danger = false, onConfirm, onCancel }) {
+export default function ConfirmDialog({
+  open = false,
+  title = 'Confirm action',
+  message = 'Are you sure you want to continue?',
+  confirmLabel = 'Confirm',
+  cancelLabel = 'Cancel',
+  danger = false,
+  onConfirm,
+  onCancel,
+}) {
   if (!open) return null;
+
   return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 200,
-      background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      animation: 'fade-in 0.15s ease-out',
-    }}>
-      <div style={{
-        background: 'var(--bg-card)', border: '1px solid var(--border)',
-        borderRadius: '16px', padding: '28px 32px', maxWidth: '420px', width: '90%',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px', marginBottom: '20px' }}>
-          <div style={{
-            width: 40, height: 40, borderRadius: '10px', flexShrink: 0,
-            background: danger ? 'rgba(239,68,68,0.12)' : 'rgba(198,124,78,0.12)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: danger ? '#ef4444' : '#C67C4E',
-          }}>
-            {danger ? <IconTrash width={18} height={18} /> : <IconAlert width={18} height={18} />}
-          </div>
-          <div style={{ flex: 1 }}>
-            <h3 style={{ margin: '0 0 6px', fontSize: '16px', fontWeight: 700, color: 'var(--text-1)' }}>
-              {title}
-            </h3>
-            <p style={{ margin: 0, fontSize: '13.5px', color: 'var(--text-3)', lineHeight: 1.6 }}>
-              {message}
-            </p>
-          </div>
-        </div>
-        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        zIndex: 100,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'rgba(0,0,0,0.4)',
+        backdropFilter: 'blur(2px)',
+        padding: 16,
+      }}
+      onClick={onCancel}
+    >
+      <div
+        style={{
+          background: 'var(--bg-card)',
+          width: '100%',
+          maxWidth: 360,
+          borderRadius: 16,
+          overflow: 'hidden',
+          border: '1px solid var(--border)',
+          padding: 24,
+          boxShadow: '0 10px 30px rgba(0,0,0,0.2)',
+        }}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <h3
+          style={{
+            fontSize: 18,
+            fontWeight: 800,
+            color: 'var(--text-1)',
+            marginTop: 0,
+            marginBottom: 8,
+          }}
+        >
+          {title}
+        </h3>
+        <p
+          style={{
+            fontSize: 14,
+            fontWeight: 500,
+            color: 'var(--text-3)',
+            marginBottom: 24,
+          }}
+        >
+          {message}
+        </p>
+        <div style={{ display: 'flex', gap: 12 }}>
           <button
             onClick={onCancel}
             style={{
-              padding: '8px 18px', borderRadius: '8px', fontSize: '13px',
-              background: 'none', border: '1px solid var(--border)',
-              color: 'var(--text-2)', cursor: 'pointer', fontWeight: 500,
-              display: 'flex', alignItems: 'center', gap: '6px',
+              flex: 1,
+              padding: '10px',
+              background: 'var(--bg-hover)',
+              color: 'var(--text-2)',
+              border: '1px solid var(--border)',
+              borderRadius: 10,
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: '0.2s',
             }}
           >
-            <IconX width={13} height={13} /> Cancel
+            {cancelLabel}
           </button>
           <button
             onClick={onConfirm}
             style={{
-              padding: '8px 20px', borderRadius: '8px', fontSize: '13px', fontWeight: 600,
-              background: danger ? '#ef4444' : 'linear-gradient(135deg, #C67C4E, #E09A6E)',
-              color: '#fff', border: 'none', cursor: 'pointer',
-              display: 'flex', alignItems: 'center', gap: '6px',
+              flex: 1,
+              padding: '10px',
+              background: danger ? '#ef4444' : '#C67C4E',
+              color: '#fff',
+              border: 'none',
+              borderRadius: 10,
+              fontWeight: 700,
+              cursor: 'pointer',
+              transition: '0.2s',
+              boxShadow: danger
+                ? '0 4px 12px rgba(239, 68, 68, 0.3)'
+                : '0 4px 12px rgba(198, 124, 78, 0.3)',
             }}
           >
-            <IconCheck width={13} height={13} /> {confirmLabel}
+            {confirmLabel}
           </button>
         </div>
       </div>
