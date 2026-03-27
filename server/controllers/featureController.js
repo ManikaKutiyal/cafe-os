@@ -652,6 +652,10 @@ async function updateFeature(req, res) {
       : `${nextState.plans.length} plans · ${nextState.tenantOverrides.length} tenant overrides`;
 
     await ActivityLog.create({
+      action: 'FEATURE_FLAG_UPDATED',
+      target: feature.name,
+      performedBy: req.body.adminUser || 'SuperAdmin',
+      details: `Feature "${feature.name}" updated — ${scopeSummary}.`,
       actionType: 'FEATURE_FLAG_UPDATED',
       adminUser: nextState.updatedBy || 'SuperAdmin',
       targetEntity: `${feature.name} (${environment})`,

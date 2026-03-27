@@ -56,7 +56,16 @@ function getDuplicateKeyMessage(error) {
 /* ── Activity log helper ────────────────────────────────── */
 async function log(action, target, performedBy, details) {
   try {
-    await ActivityLog.create({ actionType: action, adminUser: performedBy, targetEntity: target, description: details });
+    await ActivityLog.create({
+      action,
+      target,
+      performedBy,
+      details,
+      actionType: action,
+      adminUser: performedBy,
+      targetEntity: target,
+      description: details,
+    });
   } catch (_) { /* non-fatal */ }
 }
 

@@ -376,40 +376,25 @@ async function getBillingSummary(req, res) {
         return b.revenue - a.revenue;
       });
 
-    const filteredQuery = buildInvoiceQuery(req.query);
-    const trendQuery = { ...filteredQuery };
-    if (!trendQuery.status) trendQuery.status = { $in: REVENUE_STATUSES };
-    const trend = await buildTrend(trendQuery, req.query.dateFrom, req.query.dateTo);
+    const churnWindowStart = new Date();
+    churnWindowStart.setDate(churnWindowStart.getDate() - 30);
+    const churnWindowEnd = new Date();
 
-    const statusBreakdown = await Invoice.aggregate([
-      { $match: filteredQuery },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-          amount: { $sum: '$amount' },
-        },
-      },
-    ]);
-
-    const invoiceStats = summarizeStatusBuckets(statusBreakdown);
-
-    res.json({
-      success: true,
-      data: {
-        mrr,
-        monthlyGrowthPct,
-        payingTenants,
-        freeVsPaid: {
-          free: freeTenants,
-          paid: payingTenants,
-          totalActive: activeTenants.length,
-        },
-        revenueByPlan,
-        trend,
-        invoiceStats,
-      },
+    const churned = await Tenant.countDocuments({
+      status: 'Expired',
+      planExpiryDate: { $gte: churnWindowStart, $lte: churnWindowEnd },
     });
+
+    const base = await Tenant.countDocuments({
+      $or: [
+        { subscriptionStartDate: { $lte: churnWindowStart } },
+        { subscriptionStartDate: null, createdAt: { $lte: churnWindowStart } },
+      ],
+    });
+
+    const churnRate = base > 0 ? Number(((churned / base) * 100).toFixed(1)) : 0;
+
+    res.json({ success: true, data: { mrr, revenueByPlan, trend, churnRate } });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
@@ -580,11 +565,17 @@ async function seedInvoices(req, res) {
   }
 }
 
-module.exports = {
-  getInvoices,
-  createInvoice,
-  updateInvoice,
-  getBillingSummary,
-  getTenantBillingDetails,
-  seedInvoices,
+const cleanupInvoices = async (req, res) => {
+  try {
+    const { confirm } = req.body || {};
+    if (!confirm) {
+      return res.status(400).json({ success: false, message: 'Cleanup not confirmed.' });
+    }
+    const result = await Invoice.deleteMany({});
+    res.json({ success: true, deleted: result.deletedCount || 0 });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 };
+
+module.exports = { getInvoices, createInvoice, updateInvoice, getBillingSummary, seedInvoices, cleanupInvoices };

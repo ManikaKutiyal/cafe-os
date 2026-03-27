@@ -33,8 +33,8 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // DB
 const connectDB = require("./config/database");
 
-// Auth (legacy owner auth)
-const authRoutes = require("./routes/auth");
+// Auth
+const authRoutes = require("./routes/authRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
 app.use("/api/auth", authRoutes);
