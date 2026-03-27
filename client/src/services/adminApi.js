@@ -14,104 +14,128 @@ function withQuery(path, params = {}) {
   return query ? `${path}?${query}` : path;
 }
 
-// ────── Tenants ──────
-export const fetchTenants = (params = {}) => {
-  const query = new URLSearchParams(params).toString();
-  return apiFetch(`/admin/tenants${query ? '?' + query : ''}`);
-};
+// Tenants
+export const fetchTenants = (params = {}) =>
+  apiRequest({ url: withQuery('/admin/tenants', params), method: 'get' });
 
-export const fetchTenantById = (id) => apiFetch(`/admin/tenants/${id}`);
+export const fetchTenantById = (id) =>
+  apiRequest({ url: `/admin/tenants/${id}`, method: 'get' });
 
 export const createTenant = (data) =>
-  apiFetch('/admin/tenants', { method: 'POST', body: data });
+  apiRequest({ url: '/admin/tenants', method: 'post', data });
 
 export const updateTenant = (id, data) =>
-  apiFetch(`/admin/tenants/${id}`, { method: 'PATCH', body: data });
+  apiRequest({ url: `/admin/tenants/${id}`, method: 'patch', data });
 
 export const updateTenantStatus = (id, status) =>
-  apiFetch(`/admin/tenants/${id}/status`, { method: 'PATCH', body: { status } });
+  apiRequest({ url: `/admin/tenants/${id}/status`, method: 'patch', data: { status } });
 
-// Track tenant activity (updates lastActiveAt, optionally increments ordersUsed)
 export const trackTenantActivity = (id, orders = 0) =>
-  apiFetch(`/admin/tenants/${id}/activity`, { method: 'PATCH', body: { orders } });
+  apiRequest({ url: `/admin/tenants/${id}/activity`, method: 'patch', data: { orders } });
 
 export const deleteTenant = (id) =>
-  apiFetch(`/admin/tenants/${id}`, { method: 'DELETE' });
+  apiRequest({ url: `/admin/tenants/${id}`, method: 'delete' });
 
-// ────── Plans ──────
-export const fetchPlans = () => apiFetch('/admin/plans');
+// Plans
+export const fetchPlans = () =>
+  apiRequest({ url: '/admin/plans', method: 'get' });
 
-export const fetchPlanDistribution = () => apiFetch('/admin/plans/distribution');
+export const fetchPlanDistribution = () =>
+  apiRequest({ url: '/admin/plans/distribution', method: 'get' });
 
 export const createPlan = (data) =>
-  apiFetch('/admin/plans', { method: 'POST', body: data });
+  apiRequest({ url: '/admin/plans', method: 'post', data });
 
 export const updatePlan = (id, data) =>
-  apiFetch(`/admin/plans/${id}`, { method: 'PATCH', body: data });
+  apiRequest({ url: `/admin/plans/${id}`, method: 'patch', data });
 
 export const deletePlan = (id) =>
-  apiFetch(`/admin/plans/${id}`, { method: 'DELETE' });
+  apiRequest({ url: `/admin/plans/${id}`, method: 'delete' });
 
-// ────── Features ──────
-export const fetchFeatures = () => apiFetch('/admin/features');
+// Features
+export const fetchFeatures = () =>
+  apiRequest({ url: '/admin/features', method: 'get' });
 
-// Update any combination of { globalEnabled, plansEnabled, tenantOverrides }
 export const updateFeature = (id, updates) =>
-  apiFetch(`/admin/features/${id}`, { method: 'PATCH', body: updates });
+  apiRequest({ url: `/admin/features/${id}`, method: 'patch', data: updates });
 
-// Resolve which feature keys are active for a specific tenant
+export const fetchFeatureImpact = (id, params = {}) =>
+  apiRequest({ url: withQuery(`/admin/features/${id}/impact`, params), method: 'get' });
+
+export const previewFeatureUpdate = (id, data) =>
+  apiRequest({ url: `/admin/features/${id}/preview`, method: 'post', data });
+
 export const resolveFeatureFlags = (tenantId, plan) =>
-  apiFetch(`/admin/features/resolve?tenantId=${tenantId}&plan=${encodeURIComponent(plan)}`);
+  apiRequest({
+    url: withQuery('/admin/features/resolve', { tenantId, plan }),
+    method: 'get',
+  });
 
-// ────── Admin Users ──────
-export const fetchUsers = () => apiFetch('/admin/users');
+export const searchFeatureTenants = (params = {}) =>
+  apiRequest({ url: withQuery('/admin/features/tenants/search', params), method: 'get' });
 
-export const fetchRolePermissions = () => apiFetch('/admin/users/role-permissions');
+// Admin Users
+export const fetchUsers = () =>
+  apiRequest({ url: '/admin/users', method: 'get' });
+
+export const fetchRolePermissions = () =>
+  apiRequest({ url: '/admin/users/role-permissions', method: 'get' });
 
 export const createUser = (data) =>
-  apiFetch('/admin/users', { method: 'POST', body: data });
+  apiRequest({ url: '/admin/users', method: 'post', data });
 
 export const updateUser = (id, data) =>
-  apiFetch(`/admin/users/${id}`, { method: 'PATCH', body: data });
+  apiRequest({ url: `/admin/users/${id}`, method: 'patch', data });
 
 export const deleteUser = (id) =>
-  apiFetch(`/admin/users/${id}`, { method: 'DELETE' });
+  apiRequest({ url: `/admin/users/${id}`, method: 'delete' });
 
-// ────── Logs ──────
-export const fetchLogs = (params = {}) => {
-  const query = new URLSearchParams(params).toString();
-  return apiFetch(`/admin/logs${query ? '?' + query : ''}`);
-};
+// Logs
+export const fetchLogs = (params = {}) =>
+  apiRequest({ url: withQuery('/admin/logs', params), method: 'get' });
 
-// ────── Analytics ──────
-export const fetchAnalytics = () => apiFetch('/admin/analytics');
+// Analytics
+export const fetchAnalytics = () =>
+  apiRequest({ url: '/admin/analytics', method: 'get' });
 
-export const fetchTenantUsage = () => apiFetch('/admin/analytics/tenant-usage');
+export const fetchTenantUsage = () =>
+  apiRequest({ url: '/admin/analytics/tenant-usage', method: 'get' });
 
-// ────── Alerts ──────
-export const fetchAlerts = (params = {}) => {
-  const query = new URLSearchParams(params).toString();
-  return apiFetch(`/admin/alerts${query ? '?' + query : ''}`);
-};
+// Alerts
+export const fetchAlerts = (params = {}) =>
+  apiRequest({ url: withQuery('/admin/alerts', params), method: 'get' });
 
 export const updateAlertStatus = (id, status) =>
-  apiFetch(`/admin/alerts/${id}/status`, { method: 'PATCH', body: { status } });
+  apiRequest({ url: `/admin/alerts/${id}/status`, method: 'patch', data: { status } });
 
-// ────── Invoices / Billing ──────
-export const fetchInvoices = (params = {}) => {
-  const query = new URLSearchParams(params).toString();
-  return apiFetch(`/admin/invoices${query ? '?' + query : ''}`);
-};
+// Notifications
+export const fetchNotifications = (params = {}) =>
+  apiRequest({ url: withQuery('/admin/notifications', params), method: 'get' });
+
+export const markNotificationRead = (id) =>
+  apiRequest({ url: `/admin/notifications/${id}/read`, method: 'patch' });
+
+export const markAllNotificationsRead = () =>
+  apiRequest({ url: '/admin/notifications/read-all', method: 'patch' });
+
+// Invoices / Billing
+export const fetchInvoices = (params = {}) =>
+  apiRequest({ url: withQuery('/admin/invoices', params), method: 'get' });
 
 export const createInvoice = (data) =>
-  apiFetch('/admin/invoices', { method: 'POST', body: data });
+  apiRequest({ url: '/admin/invoices', method: 'post', data });
 
 export const updateInvoice = (id, data) =>
-  apiFetch(`/admin/invoices/${id}`, { method: 'PATCH', body: data });
+  apiRequest({ url: `/admin/invoices/${id}`, method: 'patch', data });
 
-export const fetchBillingSummary = () => apiFetch('/admin/invoices/summary');
+export const fetchBillingSummary = () =>
+  apiRequest({ url: '/admin/invoices/summary', method: 'get' });
 
-export const seedInvoices = () => apiFetch('/admin/invoices/seed', { method: 'POST' });
+export const fetchTenantBillingDetails = (tenantId) =>
+  apiRequest({ url: `/admin/invoices/tenant/${tenantId}/details`, method: 'get' });
+
+export const seedInvoices = () =>
+  apiRequest({ url: '/admin/invoices/seed', method: 'post' });
 
 export const cleanupInvoices = (confirm = false) =>
-  apiFetch('/admin/invoices/cleanup', { method: 'POST', body: { confirm } });
+  apiRequest({ url: '/admin/invoices/cleanup', method: 'post', data: { confirm } });
