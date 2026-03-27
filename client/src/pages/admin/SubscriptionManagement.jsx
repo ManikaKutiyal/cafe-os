@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList,
 } from 'recharts';
-import toast from 'react-hot-toast';
 import AdminLayout from '../../components/admin/AdminLayout';
 import PlanCard from '../../components/admin/PlanCard';
 import StatsCard from '../../components/admin/StatsCard';
@@ -13,18 +12,27 @@ import {
 import { PageSpinner, ErrorBanner, EmptyState, Spinner } from '../../components/admin/SkeletonLoader';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
 
-// ── Feature catalog ─────────────────────────────────────────────────────────
-const ALL_FEATURES = [
-  { key: 'POS',                label: 'Point of Sale',        icon: '🖥️' },
-  { key: 'INVENTORY',          label: 'Inventory Management', icon: '📦' },
-  { key: 'CRM',                label: 'CRM System',           icon: '👥' },
-  { key: 'BASIC_REPORTS',      label: 'Basic Reports',        icon: '📊' },
-  { key: 'ADVANCED_ANALYTICS', label: 'Advanced Analytics',   icon: '📈' },
-  { key: 'API_ACCESS',         label: 'API Access',           icon: '🔌' },
-  { key: 'STAFF_MANAGEMENT',   label: 'Staff Management',     icon: '👔' },
-  { key: 'ONLINE_ORDERING',    label: 'Online Ordering',      icon: '🛒' },
-  { key: 'LOYALTY_PROGRAM',    label: 'Loyalty Program',      icon: '⭐' },
-];
+const fieldStyle = {
+  width: '100%',
+  minHeight: 46,
+  background: 'var(--bg-base)',
+  border: '1px solid var(--border)',
+  color: 'var(--text-1)',
+  borderRadius: 14,
+  padding: '0 14px',
+  boxSizing: 'border-box',
+  fontSize: 13,
+};
+
+const labelStyle = {
+  fontSize: 11,
+  fontWeight: 800,
+  color: 'var(--text-3)',
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  marginBottom: 6,
+  display: 'block',
+};
 
 // ── Style constants ─────────────────────────────────────────────────────────
 const emptyForm = {
@@ -94,29 +102,26 @@ export default function SubscriptionManagement() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const totalTenants = distribution.reduce((sum, row) => sum + row.count, 0);
+  const paidPlans = useMemo(() => plans.filter((plan) => Number(plan.price) > 0).length, [plans]);
 
-  // Toggle a feature key on/off in the form
-  const toggleFeature = (key) =>
-    setForm((f) => ({
-      ...f,
-      featureList: f.featureList.includes(key)
-        ? f.featureList.filter((k) => k !== key)
-        : [...f.featureList, key],
-    }));
+  const openCreate = () => {
+    setForm(emptyDraft);
+    setEditingPlanId('');
+    setShowEditor(true);
+  };
 
   const openEdit = (plan) => {
+    setEditingPlanId(plan._id);
     setForm({
-      planName:    plan.planName,
-      price:       plan.price,
+      planName: plan.planName,
+      price: plan.price,
       featureList: Array.isArray(plan.featureList) ? plan.featureList : [],
-      orderLimit:  plan.orderLimit,
-      staffLimit:  plan.staffLimit,
-      planStatus:  plan.planStatus,
+      orderLimit: plan.orderLimit,
+      staffLimit: plan.staffLimit,
+      planStatus: plan.planStatus,
     });
-    setEditId(plan._id);
-    setShowForm(true);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowEditor(true);
   };
 
   const handleDelete = async (id) => {
@@ -398,6 +403,12 @@ export default function SubscriptionManagement() {
 
   return (
     <AdminLayout>
+      <PageHeader
+        eyebrow="Monetization"
+        title="Subscription plans"
+        subtitle="Manage pricing, packaging, and adoption across the CafeOS product catalog."
+        actions={<Button onClick={openCreate}>New plan</Button>}
+      />
 
       {/* ── Page header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, gap: 12, flexWrap: 'wrap' }}>
@@ -569,114 +580,78 @@ export default function SubscriptionManagement() {
         </div>
       )}
 
-      {/* ── Create / Edit form ── */}
-      {showForm && (
-        <div style={{
-          background: 'var(--bg-card)', border: '1px solid var(--border)',
-          borderRadius: 14, padding: 24, marginBottom: 28,
-        }}>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)', marginBottom: 18 }}>
-            {editId ? 'Edit Plan' : 'New Plan'}
+      {loading ? <PageSpinner message="Loading plan catalog..." /> : null}
+      {error ? <ErrorBanner message={error} /> : null}
+
+      {!loading && !error ? (
+        <>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 18 }}>
+            <MetricCard label="Plans" value={plans.length} subtitle="Active catalog entries in the subscription stack" accent="#c67c4e" icon="💳" />
+            <MetricCard label="Paid tiers" value={paidPlans} subtitle="Plans generating recurring revenue" accent="#22c55e" icon="💰" />
+            <MetricCard label="Tenants assigned" value={totalTenants} subtitle="Workspaces distributed across available plans" accent="#0f766e" icon="🏪" />
+            <MetricCard label="Feature catalog" value={Object.keys(featureCatalog).length} subtitle="Capabilities available for packaging" accent="#3b82f6" icon="⚑" />
           </div>
-          <form onSubmit={handleSubmit}>
 
-            {/* Basic fields */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 14, marginBottom: 20 }}>
-              {[
-                ['Plan Name', 'planName', 'text',   true],
-                ['Price (₹)', 'price',    'number', true],
-                ['Order Limit','orderLimit','number',false],
-                ['Staff Limit','staffLimit','number',false],
-              ].map(([l, k, t, r]) => (
-                <div key={k}>
-                  <label style={lbl}>{l}</label>
-                  <input
-                    required={r} type={t} value={form[k]}
-                    onChange={(e) => setForm({ ...form, [k]: e.target.value })}
-                    style={inp}
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 0.9fr)', gap: 18, marginBottom: 18 }}>
+            <Card title="Plan adoption" subtitle="How tenants are currently distributed across pricing tiers.">
+              {distribution.length ? (
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={distribution} margin={{ top: 8, right: 12, left: -24, bottom: 0 }}>
+                    <XAxis dataKey="plan" tick={{ fill: 'var(--text-3)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: 'var(--text-3)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                    <Tooltip content={<DistributionTooltip />} cursor={{ fill: 'rgba(198,124,78,0.08)' }} />
+                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
+                      {distribution.map((_, index) => <Cell key={index} fill={chartColors[index % chartColors.length]} />)}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <EmptyState
+                  icon="📊"
+                  title="No adoption data yet"
+                  subtitle="Create plans and assign tenants to visualize packaging performance."
+                  compact
+                />
+              )}
+            </Card>
+
+            <Card title="Adoption summary" subtitle="Quick read on how each tier is performing.">
+              <div style={{ display: 'grid', gap: 10 }}>
+                {distribution.length ? distribution.map((row, index) => (
+                  <div key={row.plan} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: '12px 14px', borderRadius: 16, background: 'var(--bg-hover)' }}>
+                    <div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-1)' }}>{row.plan}</div>
+                      <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-3)' }}>{row.count} tenant{row.count === 1 ? '' : 's'}</div>
+                    </div>
+                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: chartColors[index % chartColors.length], flexShrink: 0 }} />
+                  </div>
+                )) : (
+                  <EmptyState
+                    icon="💳"
+                    title="No plan activity yet"
+                    subtitle="Tenants will appear here as soon as plan assignments begin."
+                    compact
                   />
-                </div>
+                )}
+              </div>
+            </Card>
+          </div>
+
+          {plans.length ? (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
+              {plans.map((plan) => (
+                <PlanCard
+                  key={plan._id}
+                  plan={plan}
+                  tenantCount={countByPlan[plan.planName] || 0}
+                  onEdit={openEdit}
+                  onDelete={(planId) => {
+                    if (window.confirm('Delete this plan? Existing tenant assignments may need follow-up.')) {
+                      deletePlanRecord(planId);
+                    }
+                  }}
+                />
               ))}
-              <div>
-                <label style={lbl}>Status</label>
-                <select
-                  value={form.planStatus}
-                  onChange={(e) => setForm({ ...form, planStatus: e.target.value })}
-                  style={inp}
-                >
-                  <option>Active</option>
-                  <option>Inactive</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Feature key checkboxes */}
-            <div style={{ marginBottom: 22 }}>
-              <label style={{ ...lbl, marginBottom: 12 }}>
-                Features{' '}
-                <span style={{ color: 'var(--text-2)', textTransform: 'none', letterSpacing: 0, fontWeight: 400 }}>
-                  ({form.featureList.length} selected)
-                </span>
-              </label>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 8 }}>
-                {ALL_FEATURES.map(({ key, label, icon }) => {
-                  const selected = form.featureList.includes(key);
-                  return (
-                    <label
-                      key={key}
-                      style={{
-                        display: 'flex', alignItems: 'center', gap: 10,
-                        cursor: 'pointer', padding: '9px 12px', borderRadius: 9,
-                        background: selected ? 'rgba(198,124,78,0.1)' : 'var(--bg-hover)',
-                        border: `1px solid ${selected ? 'rgba(198,124,78,0.4)' : 'var(--border)'}`,
-                        transition: 'background 0.12s, border-color 0.12s',
-                        userSelect: 'none',
-                      }}
-                    >
-                      <input
-                        type="checkbox" checked={selected}
-                        onChange={() => toggleFeature(key)}
-                        style={{ display: 'none' }}
-                      />
-                      {/* Custom checkbox indicator */}
-                      <span style={{
-                        width: 16, height: 16, borderRadius: 4, flexShrink: 0,
-                        border: `2px solid ${selected ? '#C67C4E' : 'var(--text-3)'}`,
-                        background: selected ? '#C67C4E' : 'transparent',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        transition: 'all 0.12s',
-                      }}>
-                        {selected && (
-                          <span style={{ color: '#fff', fontSize: 10, fontWeight: 900, lineHeight: 1 }}>✓</span>
-                        )}
-                      </span>
-                      <span style={{ fontSize: 14 }}>{icon}</span>
-                      <span style={{
-                        fontSize: 12,
-                        fontWeight: selected ? 600 : 400,
-                        color: selected ? 'var(--text-1)' : 'var(--text-2)',
-                      }}>
-                        {label}
-                      </span>
-                    </label>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-              <button
-                type="button" onClick={() => setShowForm(false)}
-                style={{ padding: '9px 18px', borderRadius: 9, border: '1px solid var(--border)', background: 'var(--bg-hover)', color: 'var(--text-2)', cursor: 'pointer', fontWeight: 600 }}
-              >
-                Cancel
-              </button>
-              <button
-                type="submit" disabled={saving}
-                style={{ padding: '9px 18px', borderRadius: 9, border: 'none', background: '#C67C4E', color: '#fff', cursor: saving ? 'default' : 'pointer', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6, opacity: saving ? 0.7 : 1 }}
-              >
-                {saving ? <><Spinner size={14} /> Saving…</> : editId ? 'Update Plan' : 'Create Plan'}
-              </button>
             </div>
           </form>
         </div>

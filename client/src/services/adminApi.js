@@ -1,42 +1,17 @@
-const BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:5000') + '/api';
+import { apiRequest } from './api';
 
-/**
- * Centralized fetch helper.
- * - Prepends BASE_URL to every path
- * - Always sends / expects JSON
- * - Throws a plain Error with a human-readable message on failure
- */
-export async function apiFetch(path, { method = 'GET', body, headers = {} } = {}) {
-  const url = `${BASE_URL}${path}`;
-  const init = {
-    method,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...headers },
-  };
-  if (body !== undefined) init.body = JSON.stringify(body);
+function withQuery(path, params = {}) {
+  const query = new URLSearchParams(
+    Object.entries(params).reduce((acc, [key, value]) => {
+      if (value !== '' && value !== undefined && value !== null) {
+        acc[key] = value;
+      }
 
-  let res;
-  try {
-    res = await fetch(url, init);
-  } catch (networkErr) {
-    // Covers "Failed to fetch" (server down, CORS preflight blocked, etc.)
-    throw new Error(
-      'Cannot reach the server. Make sure the backend is running on port 5000.',
-    );
-  }
+      return acc;
+    }, {}),
+  ).toString();
 
-  let data;
-  try {
-    data = await res.json();
-  } catch {
-    throw new Error(`Server returned an unexpected response (HTTP ${res.status}).`);
-  }
-
-  if (!res.ok) {
-    throw new Error(data?.message || `Request failed with status ${res.status}.`);
-  }
-
-  return data;
+  return query ? `${path}?${query}` : path;
 }
 
 // ────── Tenants ──────
