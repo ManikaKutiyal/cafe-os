@@ -153,7 +153,6 @@ export default function SubscriptionManagement() {
   };
 
   const countMap     = Object.fromEntries(distribution.map(({ plan, count }) => [plan, count]));
-  const totalTenants = distribution.reduce((s, d) => s + d.count, 0);
   const priceMap     = Object.fromEntries(plans.map((p) => [p.planName, p.price]));
   const priceMapServer = Object.fromEntries((billing?.revenueByPlan || []).map((p) => [p.plan, p.unitPrice]));
   const priceForPlan = (planName) => {
@@ -637,10 +636,10 @@ export default function SubscriptionManagement() {
             </Card>
           </div>
 
-          {plans.length ? (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
-              {plans.map((plan) => (
-                <PlanCard
+	          {plans.length ? (
+	            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
+	              {plans.map((plan) => (
+	                <PlanCard
                   key={plan._id}
                   plan={plan}
                   tenantCount={countByPlan[plan.planName] || 0}
@@ -650,12 +649,12 @@ export default function SubscriptionManagement() {
                       deletePlanRecord(planId);
                     }
                   }}
-                />
-              ))}
-            </div>
-          </form>
-        </div>
-      )}
+	                />
+	              ))}
+	            </div>
+	          ) : null}
+	        </>
+	      ) : null}
 
       {loading && <PageSpinner />}
       {error && <ErrorBanner message={error} />}
