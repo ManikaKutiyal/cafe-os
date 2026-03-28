@@ -1,27 +1,65 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LabelList,
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  AreaChart,
+  Area,
 } from 'recharts';
 import AdminLayout from '../../components/admin/AdminLayout';
 import PlanCard from '../../components/admin/PlanCard';
-import StatsCard from '../../components/admin/StatsCard';
-import {
-  fetchPlans, createPlan, updatePlan, deletePlan, fetchPlanDistribution, fetchTenants, fetchInvoices, fetchBillingSummary, fetchLogs,
-} from '../../services/adminApi';
-import { PageSpinner, ErrorBanner, EmptyState, Spinner } from '../../components/admin/SkeletonLoader';
 import ConfirmDialog from '../../components/admin/ConfirmDialog';
+import { PageSpinner, ErrorBanner, EmptyState } from '../../components/admin/SkeletonLoader';
+import PageHeader from '../../components/layout/PageHeader';
+import Button from '../../components/ui/Button';
+import Card from '../../components/ui/Card';
+import MetricCard from '../../components/ui/MetricCard';
+import {
+  fetchPlans,
+  createPlan,
+  updatePlan,
+  deletePlan,
+  fetchPlanDistribution,
+  fetchTenants,
+  fetchInvoices,
+  fetchBillingSummary,
+  fetchLogs,
+} from '../../services/adminApi';
+
+const chartColors = ['#c67c4e', '#0f766e', '#3b82f6', '#f59e0b', '#8b5cf6', '#ef4444'];
+
+const emptyForm = {
+  planName: '',
+  price: '',
+  featureList: '',
+  orderLimit: 100,
+  staffLimit: 5,
+  planStatus: 'Active',
+};
 
 const fieldStyle = {
   width: '100%',
   minHeight: 46,
-  background: 'var(--bg-base)',
-  border: '1px solid var(--border)',
-  color: 'var(--text-1)',
   borderRadius: 14,
+  border: '1px solid var(--border)',
+  background: 'var(--bg-base)',
+  color: 'var(--text-1)',
   padding: '0 14px',
   boxSizing: 'border-box',
   fontSize: 13,
+};
+
+const textareaStyle = {
+  ...fieldStyle,
+  padding: '12px 14px',
+  minHeight: 110,
+  resize: 'vertical',
 };
 
 const labelStyle = {
@@ -34,724 +72,574 @@ const labelStyle = {
   display: 'block',
 };
 
-// ── Style constants ─────────────────────────────────────────────────────────
-const emptyForm = {
-  planName: '', price: '', featureList: [], orderLimit: 100, staffLimit: 5, planStatus: 'Active',
-};
-const inp = {
-  width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border)',
-  color: 'var(--text-1)', padding: '10px 14px', borderRadius: 9,
-  fontSize: 13, boxSizing: 'border-box', outline: 'none',
-};
-const lbl = {
-  fontSize: 11, fontWeight: 700, color: 'var(--text-3)',
-  textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5,
-};
-
-function ChartTooltip({ active, payload }) {
+function CompactTooltip({ active, payload, label, money = false }) {
   if (!active || !payload?.length) return null;
-  const { revenue } = payload[0].payload;
-  if (!revenue) return null;
+
   return (
     <div style={{
-      background: 'var(--bg-card)', border: '1px solid var(--border)',
-      borderRadius: 8, padding: '6px 10px', fontSize: 12, color: 'var(--text-1)',
+      background: 'var(--bg-card)',
+      border: '1px solid var(--border)',
+      borderRadius: 12,
+      padding: '10px 12px',
+      fontSize: 12,
+      color: 'var(--text-1)',
+      boxShadow: 'var(--shadow-sm)',
     }}>
-      Peak: ₹{Number(revenue || 0).toLocaleString('en-IN')}
+      <div style={{ fontWeight: 800 }}>{label}</div>
+      <div style={{ marginTop: 4, color: 'var(--text-3)' }}>
+        {money ? `₹${Number(payload[0]?.value || 0).toLocaleString('en-IN')}` : payload[0]?.value || 0}
+      </div>
     </div>
   );
 }
 
 export default function SubscriptionManagement() {
-  const [plans, setPlans]               = useState([]);
-  const [distribution, setDistribution] = useState([]);
-  const [tenants, setTenants]           = useState([]);
-  const [invoices, setInvoices]         = useState([]);
-  const [logs, setLogs]                 = useState([]);
-  const [billing, setBilling]           = useState(null);
-  const [revMetric, setRevMetric]       = useState('NET');
-  const [activityFilter, setActivityFilter] = useState('All');
-  const [loading, setLoading]           = useState(true);
-  const [error, setError]               = useState(null);
   const navigate = useNavigate();
-  const [showForm, setShowForm]         = useState(false);
-  const [form, setForm]                 = useState(emptyForm);
-  const [editId, setEditId]             = useState(null);
-  const [saving, setSaving]             = useState(false);
-  const [confirm, setConfirm]           = useState(null);
+  const [plans, setPlans] = useState([]);
+  const [distribution, setDistribution] = useState([]);
+  const [tenants, setTenants] = useState([]);
+  const [invoices, setInvoices] = useState([]);
+  const [logs, setLogs] = useState([]);
+  const [billing, setBilling] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState(emptyForm);
+  const [editId, setEditId] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [confirm, setConfirm] = useState(null);
 
-  const load = useCallback(() => {
+  const load = useCallback(async () => {
     setLoading(true);
-    Promise.all([
-      fetchPlans(),
-      fetchPlanDistribution(),
-      fetchTenants({ limit: 500 }),
-      fetchInvoices({ limit: 300, page: 1 }),
-      fetchBillingSummary(),
-      fetchLogs({ limit: 200, page: 1 }),
-    ])
-      .then(([plansRes, distRes, tenantsRes, invoicesRes, billingRes, logsRes]) => {
-        setPlans(plansRes.data ?? []);
-        setDistribution(distRes.data ?? []);
-        setTenants(tenantsRes.data ?? []);
-        setInvoices(invoicesRes.data ?? []);
-        setBilling(billingRes.data ?? null);
-        setLogs(logsRes.data ?? []);
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
+
+    try {
+      setError(null);
+      const [plansRes, distributionRes, tenantsRes, invoicesRes, billingRes, logsRes] = await Promise.all([
+        fetchPlans(),
+        fetchPlanDistribution(),
+        fetchTenants({ page: 1, limit: 500 }),
+        fetchInvoices({ page: 1, limit: 300 }),
+        fetchBillingSummary(),
+        fetchLogs({ page: 1, limit: 60 }),
+      ]);
+
+      setPlans(plansRes.data || []);
+      setDistribution(distributionRes.data || []);
+      setTenants(tenantsRes.data || []);
+      setInvoices(invoicesRes.data || []);
+      setBilling(billingRes.data || null);
+      setLogs(logsRes.data || []);
+    } catch (fetchError) {
+      console.error('[SubscriptionManagement] Failed to load page', fetchError);
+      setError(fetchError.message || 'Failed to load subscriptions page.');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const totalTenants = distribution.reduce((sum, row) => sum + row.count, 0);
-  const paidPlans = useMemo(() => plans.filter((plan) => Number(plan.price) > 0).length, [plans]);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  const countMap = useMemo(
+    () => Object.fromEntries(distribution.map(({ plan, count }) => [plan, count])),
+    [distribution],
+  );
+
+  const totalTenants = useMemo(
+    () => distribution.reduce((sum, row) => sum + (row.count || 0), 0),
+    [distribution],
+  );
+
+  const paidPlans = useMemo(
+    () => plans.filter((plan) => Number(plan.price || 0) > 0).length,
+    [plans],
+  );
+
+  const featureCount = useMemo(
+    () => new Set(
+      plans.flatMap((plan) => (Array.isArray(plan.featureList) ? plan.featureList : []))
+    ).size,
+    [plans],
+  );
+
+  const priceMap = useMemo(
+    () => Object.fromEntries(plans.map((plan) => [plan.planName, Number(plan.price || 0)])),
+    [plans],
+  );
+
+  const expiringSoon = useMemo(() => {
+    const now = Date.now();
+
+    return tenants
+      .filter((tenant) => tenant.status === 'Active' && tenant.planExpiryDate)
+      .map((tenant) => ({
+        ...tenant,
+        daysLeft: Math.ceil((new Date(tenant.planExpiryDate).getTime() - now) / 86400000),
+      }))
+      .filter((tenant) => tenant.daysLeft >= 0 && tenant.daysLeft <= 30)
+      .sort((left, right) => left.daysLeft - right.daysLeft)
+      .slice(0, 5);
+  }, [tenants]);
+
+  const trendData = useMemo(() => billing?.trend || [], [billing]);
+
+  const planRevenueCards = useMemo(() => {
+    const revenueByPlan = billing?.revenueByPlan || [];
+
+    return revenueByPlan
+      .filter((plan) => plan.plan)
+      .map((plan) => ({
+        plan: plan.plan,
+        tenantCount: plan.tenantCount || countMap[plan.plan] || 0,
+        revenue: plan.revenue || 0,
+        unitPrice: plan.unitPrice || priceMap[plan.plan] || 0,
+      }))
+      .sort((left, right) => right.revenue - left.revenue);
+  }, [billing, countMap, priceMap]);
+
+  const activityRows = useMemo(() => {
+    const invoiceRows = invoices.map((invoice) => ({
+      id: `invoice-${invoice._id}`,
+      entity: invoice.tenantName || 'Tenant',
+      action: invoice.status === 'Paid' ? 'Payment received' : invoice.status || 'Invoice updated',
+      plan: invoice.planName || '—',
+      amount: invoice.amount || 0,
+      ts: new Date(invoice.billingDate || invoice.createdAt || 0).getTime(),
+    }));
+
+    const logRows = logs.map((log, index) => ({
+      id: `log-${index}`,
+      entity: log.target || log.targetEntity || 'System',
+      action: log.action || log.details || 'Activity',
+      plan: '—',
+      amount: 0,
+      ts: new Date(log.createdAt || 0).getTime(),
+    }));
+
+    return [...invoiceRows, ...logRows]
+      .filter((row) => Number.isFinite(row.ts))
+      .sort((left, right) => right.ts - left.ts)
+      .slice(0, 8);
+  }, [invoices, logs]);
 
   const openCreate = () => {
-    setForm(emptyDraft);
-    setEditingPlanId('');
-    setShowEditor(true);
+    setForm(emptyForm);
+    setEditId('');
+    setShowForm(true);
   };
 
   const openEdit = (plan) => {
-    setEditingPlanId(plan._id);
+    setEditId(plan._id);
     setForm({
-      planName: plan.planName,
-      price: plan.price,
-      featureList: Array.isArray(plan.featureList) ? plan.featureList : [],
-      orderLimit: plan.orderLimit,
-      staffLimit: plan.staffLimit,
-      planStatus: plan.planStatus,
+      planName: plan.planName || '',
+      price: String(plan.price ?? ''),
+      featureList: Array.isArray(plan.featureList) ? plan.featureList.join(', ') : '',
+      orderLimit: plan.orderLimit ?? 100,
+      staffLimit: plan.staffLimit ?? 5,
+      planStatus: plan.planStatus || 'Active',
     });
-    setShowEditor(true);
+    setShowForm(true);
+  };
+
+  const resetEditor = () => {
+    setForm(emptyForm);
+    setEditId('');
+    setShowForm(false);
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setSaving(true);
+
+    try {
+      const payload = {
+        planName: form.planName.trim(),
+        price: Number(form.price || 0),
+        featureList: form.featureList
+          .split(',')
+          .map((feature) => feature.trim())
+          .filter(Boolean),
+        orderLimit: Number(form.orderLimit || 0),
+        staffLimit: Number(form.staffLimit || 0),
+        planStatus: form.planStatus,
+      };
+
+      if (editId) {
+        await updatePlan(editId, payload);
+        toast.success('Plan updated');
+      } else {
+        await createPlan(payload);
+        toast.success('Plan created');
+      }
+
+      resetEditor();
+      await load();
+    } catch (submitError) {
+      console.error('[SubscriptionManagement] Failed to save plan', submitError);
+      toast.error(submitError.message || 'Failed to save plan');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = async (id) => {
-    try { await deletePlan(id); toast.success('Plan deleted'); load(); } catch (e) { toast.error(e.message); }
-    setConfirm(null);
-  };
-
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSaving(true);
     try {
-      const payload = {
-        ...form,
-        price:      Number(form.price),
-        orderLimit: Number(form.orderLimit),
-        staffLimit: Number(form.staffLimit),
-        // featureList is already an array of keys
-      };
-      if (editId) await updatePlan(editId, payload);
-      else        await createPlan(payload);
-      toast.success(editId ? 'Plan updated' : 'Plan created');
-      setForm(emptyForm);
-      setEditId(null);
-      setShowForm(false);
-      load();
-    } catch (e) { toast.error(e.message); }
-    finally { setSaving(false); }
-  };
-
-  const countMap     = Object.fromEntries(distribution.map(({ plan, count }) => [plan, count]));
-  const priceMap     = Object.fromEntries(plans.map((p) => [p.planName, p.price]));
-  const priceMapServer = Object.fromEntries((billing?.revenueByPlan || []).map((p) => [p.plan, p.unitPrice]));
-  const priceForPlan = (planName) => {
-    if (priceMapServer[planName] !== undefined) return priceMapServer[planName];
-    return priceMap[planName] || 0;
-  };
-
-  const money = (v) => `₹${Number(v || 0).toLocaleString('en-IN')}`;
-  const shortDate = (v) => (v ? new Date(v).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }) : '—');
-  const initials = (name = '') => name.split(' ').map((p) => p[0]).slice(0, 2).join('').toUpperCase();
-  const tenantByName = new Map(tenants.map((t) => [t.cafeName, t]));
-
-  const now = Date.now();
-  const activeTenants = tenants.filter((t) => t.status === 'Active');
-  const latestInvoiceByTenant = new Map();
-  [...invoices]
-    .sort((a, b) => new Date(b.billingDate).getTime() - new Date(a.billingDate).getTime())
-    .forEach((inv) => {
-      if (!latestInvoiceByTenant.has(String(inv.tenantId))) {
-        latestInvoiceByTenant.set(String(inv.tenantId), inv);
-      }
-    });
-  const expiringSoon = tenants
-    .filter((t) => t.status === 'Active')
-    .filter((t) => t.planExpiryDate)
-    .map((t) => ({ ...t, daysLeft: Math.ceil((new Date(t.planExpiryDate).getTime() - now) / 86400000) }))
-    .filter((t) => t.daysLeft >= 0 && t.daysLeft <= 30)
-    .sort((a, b) => a.daysLeft - b.daysLeft);
-
-  const futureRenewals = tenants
-    .filter((t) => t.status === 'Active')
-    .filter((t) => t.planExpiryDate)
-    .map((t) => ({ ...t, daysLeft: Math.ceil((new Date(t.planExpiryDate).getTime() - now) / 86400000) }))
-    .filter((t) => t.daysLeft >= 0)
-    .sort((a, b) => a.daysLeft - b.daysLeft);
-
-  const upcomingRenewals = expiringSoon.length >= 3
-    ? expiringSoon
-    : [...expiringSoon, ...futureRenewals.filter((t) => t.daysLeft > 30)]
-        .slice(0, 3);
-
-  const visibleRenewals = upcomingRenewals.slice(0, 3);
-  const mapLogAction = (log) => {
-    const action = log.action || '';
-    if (action.includes('TENANT_CREATED')) return 'New Subscription';
-    if (action.includes('TENANT_STATUS_CHANGED')) return log.afterValue ? `Status: ${log.afterValue}` : 'Status Changed';
-    if (action.includes('TENANT_UPDATED')) return 'Subscription Updated';
-    if (action.includes('TENANT_DELETED')) return 'Subscription Removed';
-    return log.details || action || 'Activity';
-  };
-
-  const invoiceActivity = invoices.map((inv) => ({
-    type: 'invoice',
-    ts: new Date(inv.billingDate || inv.createdAt).getTime(),
-    entity: inv.tenantName || 'Tenant',
-    plan: inv.planName || '—',
-    amount: inv.amount,
-    status: inv.status,
-    action: inv.status === 'Paid'
-      ? 'Payment Received'
-      : inv.status === 'Pending'
-        ? 'Invoice Pending'
-        : 'Payment Issue',
-  }));
-
-  const logActivity = logs.map((log) => {
-    const entity = log.target || log.targetEntity || 'Tenant';
-    const tenant = tenantByName.get(entity);
-    const plan = tenant?.subscriptionPlan || '—';
-    const amount = tenant ? (priceMap[tenant.subscriptionPlan] || 0) : null;
-    return {
-      type: 'log',
-      ts: new Date(log.createdAt).getTime(),
-      entity,
-      plan,
-      amount,
-      status: log.severity || 'INFO',
-      action: mapLogAction(log),
-    };
-  });
-
-  const mergedActivity = [...invoiceActivity, ...logActivity]
-    .filter((a) => Number.isFinite(a.ts))
-    .sort((a, b) => b.ts - a.ts)
-    .slice(0, 100);
-
-  const balancedRecent = () => {
-    const topInvoices = invoiceActivity.sort((a, b) => b.ts - a.ts).slice(0, 6);
-    const topLogs = logActivity.sort((a, b) => b.ts - a.ts).slice(0, 6);
-    return [...topInvoices, ...topLogs].sort((a, b) => b.ts - a.ts).slice(0, 8);
-  };
-
-  const filteredActivity = mergedActivity.filter((a) => (
-    activityFilter === 'All'
-      ? true
-      : activityFilter === 'Billing'
-        ? a.type === 'invoice'
-        : a.type === 'log'
-  ));
-
-  const recentActivity = activityFilter === 'All'
-    ? (logActivity.length ? logActivity.sort((a, b) => b.ts - a.ts).slice(0, 8) : balancedRecent())
-    : filteredActivity.slice(0, 8);
-
-  const newRevenueTrend = (() => {
-    const nowDt = new Date();
-    const year = nowDt.getFullYear();
-    const buckets = new Map();
-    tenants.forEach((t) => {
-      const d = new Date(t.subscriptionStartDate || t.createdAt);
-      if (Number.isNaN(d.getTime()) || d.getFullYear() !== year) return;
-      const key = d.getMonth(); // 0-11
-      buckets.set(key, (buckets.get(key) || 0) + priceForPlan(t.subscriptionPlan));
-    });
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months.map((m, idx) => ({
-      month: m,
-      revenue: buckets.get(idx) || 0,
-    }));
-  })();
-
-  const churnRevenueTrend = (() => {
-    const nowDt = new Date();
-    const year = nowDt.getFullYear();
-    const buckets = new Map();
-    tenants.forEach((t) => {
-      if (!t.planExpiryDate) return;
-      const d = new Date(t.planExpiryDate);
-      if (Number.isNaN(d.getTime()) || d.getFullYear() !== year) return;
-      const key = d.getMonth();
-      buckets.set(key, (buckets.get(key) || 0) + priceForPlan(t.subscriptionPlan));
-    });
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months.map((m, idx) => ({
-      month: m,
-      revenue: buckets.get(idx) || 0,
-    }));
-  })();
-
-  const recurringTrend = (() => {
-    const nowDt = new Date();
-    const year = nowDt.getFullYear();
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-    return months.map((m, idx) => {
-      const monthStart = new Date(year, idx, 1);
-      // Don’t project future months beyond current date
-      if (monthStart > nowDt) {
-        return { month: m, revenue: 0 };
-      }
-      const monthEnd = new Date(year, idx + 1, 0, 23, 59, 59, 999);
-      const revenue = tenants
-        .filter((t) => {
-          const start = new Date(t.subscriptionStartDate || t.createdAt);
-          if (Number.isNaN(start.getTime())) return false;
-          if (start > monthEnd) return false;
-          const expiry = t.planExpiryDate ? new Date(t.planExpiryDate) : null;
-          if (expiry && expiry < monthStart) return false;
-          return true;
-        })
-        .reduce((sum, t) => sum + priceForPlan(t.subscriptionPlan), 0);
-      return { month: m, revenue };
-    });
-  })();
-
-  const trendData = revMetric === 'MRR' ? recurringTrend : newRevenueTrend;
-  const trendTotal = trendData.reduce((s, d) => s + (d.revenue || 0), 0);
-  const maxRevenue = trendData.reduce((m, d) => Math.max(m, d.revenue || 0), 0);
-
-  const exportAudit = () => {
-    if (!invoices.length) {
-      toast.error('No invoices to export.');
-      return;
+      await deletePlan(id);
+      toast.success('Plan deleted');
+      setConfirm(null);
+      await load();
+    } catch (deleteError) {
+      console.error('[SubscriptionManagement] Failed to delete plan', deleteError);
+      toast.error(deleteError.message || 'Failed to delete plan');
     }
-    const header = ['Invoice', 'Tenant', 'Plan', 'Amount', 'Status', 'Billing Date', 'Payment Method'];
-    const rows = invoices.map((inv) => ([
-      inv.invoiceNumber || '',
-      inv.tenantName || '',
-      inv.planName || '',
-      inv.amount ?? '',
-      inv.status || '',
-      inv.billingDate ? new Date(inv.billingDate).toLocaleDateString('en-IN') : '',
-      inv.paymentMethod || '',
-    ]));
-
-    const html = `
-      <!doctype html>
-      <html>
-        <head>
-          <meta charset="utf-8" />
-          <title>Subscription Audit</title>
-          <style>
-            body { font-family: Arial, sans-serif; padding: 24px; color: #1f1f1f; }
-            h1 { font-size: 18px; margin: 0 0 6px; }
-            .meta { font-size: 12px; color: #666; margin-bottom: 16px; }
-            table { width: 100%; border-collapse: collapse; font-size: 12px; }
-            th, td { border-bottom: 1px solid #e5e5e5; padding: 8px; text-align: left; }
-            th { background: #f7f7f7; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
-          </style>
-        </head>
-        <body>
-          <h1>Subscription Audit</h1>
-          <div class="meta">Generated: ${new Date().toLocaleString('en-IN')}</div>
-          <table>
-            <thead>
-              <tr>${header.map((h) => `<th>${h}</th>`).join('')}</tr>
-            </thead>
-            <tbody>
-              ${rows.map((r) => `<tr>${r.map((v) => `<td>${String(v)}</td>`).join('')}</tr>`).join('')}
-            </tbody>
-          </table>
-        </body>
-      </html>
-    `;
-
-    const frame = document.createElement('iframe');
-    frame.style.position = 'fixed';
-    frame.style.right = '0';
-    frame.style.bottom = '0';
-    frame.style.width = '0';
-    frame.style.height = '0';
-    frame.style.border = '0';
-    frame.setAttribute('aria-hidden', 'true');
-    document.body.appendChild(frame);
-
-    const doc = frame.contentWindow?.document;
-    if (!doc) {
-      toast.error('Unable to generate PDF preview.');
-      frame.remove();
-      return;
-    }
-    doc.open();
-    doc.write(html);
-    doc.close();
-
-    frame.onload = () => {
-      try {
-        frame.contentWindow?.focus();
-        frame.contentWindow?.print();
-      } catch (_) {
-        toast.error('Print blocked. Please allow printing.');
-      } finally {
-        setTimeout(() => frame.remove(), 500);
-      }
-    };
   };
-
 
   return (
     <AdminLayout>
       <PageHeader
-        eyebrow="Monetization"
-        title="Subscription plans"
-        subtitle="Manage pricing, packaging, and adoption across the CafeOS product catalog."
-        actions={<Button onClick={openCreate}>New plan</Button>}
+        eyebrow="Revenue Architecture"
+        title="Subscriptions"
+        subtitle="Curate pricing tiers, monitor plan adoption, and manage the recurring revenue engine for every cafe workspace."
+        actions={<Button onClick={openCreate}>New Plan</Button>}
       />
 
-      {/* ── Page header ── */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 28, gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-1)', margin: '0 0 4px' }}>
-            Subscription Management
-          </h1>
-          <p style={{ color: 'var(--text-3)', fontSize: 14, margin: 0 }}>
-            {plans.length} plan{plans.length !== 1 ? 's' : ''} · {totalTenants} total tenant{totalTenants !== 1 ? 's' : ''}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-          <button
-            onClick={exportAudit}
-            style={{
-              padding: '10px 18px', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 13,
-              background: 'var(--bg-hover)', color: 'var(--text-2)', border: '1px solid var(--border)',
-            }}
-          >
-            Export Audit
-          </button>
-          <button
-            onClick={() => { setForm(emptyForm); setEditId(null); setShowForm(!showForm); }}
-            style={{
-              padding: '10px 20px', borderRadius: 10, cursor: 'pointer', fontWeight: 700, fontSize: 13,
-              background: showForm ? 'var(--bg-hover)' : '#C67C4E',
-              color: showForm ? 'var(--text-2)' : '#fff',
-              border: showForm ? '1px solid var(--border)' : 'none',
-            }}
-          >
-            {showForm ? '✕ Cancel' : '+ Create Custom Plan'}
-          </button>
-        </div>
-      </div>
-
-      {/* ── KPI Row (Mock-style) ── */}
-      {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 16, marginBottom: 28 }}>
-          <StatsCard title="Monthly Recurring" value={billing ? money(billing.mrr) : '—'} icon="🧾" variant="caramel" subtitle="MRR" />
-          <StatsCard title="Expiring in 30 Days" value={expiringSoon.length} icon="⏱" variant="amber" subtitle="Renewals due" />
-          <StatsCard title="Net Churn Rate" value={billing ? `${billing.churnRate || 0}%` : '—'} icon="👥" variant="rose" subtitle="Last 30 days" />
-          <StatsCard title="Subscriptions" value={totalTenants} icon="👥" variant="purple" subtitle="Active cafés" />
-        </div>
-      )}
-
-      {/* ── Revenue Growth + Upcoming Renewals ── */}
-      {!loading && (
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 20, marginBottom: 28 }}>
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-1)' }}>Revenue Growth</div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button
-                  onClick={() => setRevMetric('MRR')}
-                  style={{
-                    fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
-                    background: revMetric === 'MRR' ? '#C67C4E' : 'var(--bg-hover)',
-                    color: revMetric === 'MRR' ? '#fff' : 'var(--text-2)',
-                    border: revMetric === 'MRR' ? 'none' : '1px solid var(--border)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  MRR
-                </button>
-                <button
-                  onClick={() => setRevMetric('NET')}
-                  style={{
-                    fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
-                    background: revMetric === 'NET' ? '#C67C4E' : 'var(--bg-hover)',
-                    color: revMetric === 'NET' ? '#fff' : 'var(--text-2)',
-                    border: revMetric === 'NET' ? 'none' : '1px solid var(--border)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  Net Volume
-                </button>
-              </div>
-            </div>
-            <div style={{ width: '100%', height: 240, overflow: 'visible' }}>
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={trendData} margin={{ top: 40, right: 8, left: -10, bottom: 0 }}>
-                    <XAxis dataKey="month" tick={{ fill: 'var(--text-3)', fontSize: 11 }} axisLine={false} tickLine={false} />
-                    <YAxis
-                      tick={{ fill: 'var(--text-3)', fontSize: 10 }}
-                      axisLine={false}
-                      tickLine={false}
-                      tickFormatter={(v) => `₹${Number(v || 0).toLocaleString('en-IN')}`}
-                    />
-                    <Tooltip content={<ChartTooltip />} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                    <Bar dataKey="revenue" radius={[8, 8, 0, 0]} fill="#7c5534">
-                      <LabelList
-                        content={({ x, y, width, value }) => {
-                          if (!value || value !== maxRevenue) return null;
-                          const badgeW = 86;
-                          const badgeH = 20;
-                          const bx = x + (width / 2) - (badgeW / 2);
-                          const by = Math.max(0, y - badgeH - 8);
-                          return (
-                            <g>
-                              <rect x={bx} y={by} rx={6} ry={6} width={badgeW} height={badgeH} fill="#2b1b13" />
-                              <text x={bx + 8} y={by + 13} fill="#fff" fontSize="10" fontWeight="700">
-                                Peak: ₹{Number(value || 0).toLocaleString('en-IN')}
-                              </text>
-                            </g>
-                          );
-                        }}
-                      />
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            {trendTotal === 0 && (
-              <div style={{ color: 'var(--text-3)', fontSize: 12, marginTop: 6 }}>
-                No revenue activity yet — chart shows months with zero value.
-              </div>
-            )}
-          </div>
-
-          <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>Upcoming Renewals</div>
-              <div style={{ fontSize: 12, color: 'var(--text-3)' }}>Next due</div>
-            </div>
-            {visibleRenewals.length === 0 ? (
-              <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No renewals due in the next 30 days.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {visibleRenewals.map((t) => {
-                  const method = latestInvoiceByTenant.get(String(t._id))?.paymentMethod || '';
-                  const badge = method ? (method === 'Card' ? 'Auto' : 'Manual') : '—';
-                  return (
-                    <div key={t._id} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 12, alignItems: 'center' }}>
-                      <div style={{
-                        width: 34, height: 34, borderRadius: 10, background: 'var(--bg-hover)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--text-1)',
-                      }}>
-                        {initials(t.cafeName)}
-                      </div>
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>{t.cafeName}</div>
-                        <div style={{ fontSize: 12, color: 'var(--text-3)' }}>
-                          {t.subscriptionPlan} · {shortDate(t.planExpiryDate)} · {t.daysLeft}d
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 6 }}>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-1)' }}>{money(priceMap[t.subscriptionPlan] || 0)}</div>
-                        <div style={{
-                          fontSize: 10, fontWeight: 700, padding: '3px 8px', borderRadius: 999,
-                          background: 'var(--bg-hover)', color: 'var(--text-2)', border: '1px solid var(--border)',
-                        }}>
-                          {badge}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-            <button
-              onClick={() => navigate('/admin/subscriptions/renewals')}
-              style={{
-                marginTop: 14, width: '100%', padding: '8px 12px', borderRadius: 10, fontSize: 12, fontWeight: 700,
-                background: 'var(--bg-hover)', border: '1px solid var(--border)', color: 'var(--text-2)', cursor: 'pointer',
-              }}
-            >
-              View All Renewals
-            </button>
-          </div>
-        </div>
-      )}
-
-      {loading ? <PageSpinner message="Loading plan catalog..." /> : null}
+      {loading ? <PageSpinner message="Loading subscription workspace..." /> : null}
       {error ? <ErrorBanner message={error} /> : null}
 
       {!loading && !error ? (
         <>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 18 }}>
-            <MetricCard label="Plans" value={plans.length} subtitle="Active catalog entries in the subscription stack" accent="#c67c4e" icon="💳" />
-            <MetricCard label="Paid tiers" value={paidPlans} subtitle="Plans generating recurring revenue" accent="#22c55e" icon="💰" />
-            <MetricCard label="Tenants assigned" value={totalTenants} subtitle="Workspaces distributed across available plans" accent="#0f766e" icon="🏪" />
-            <MetricCard label="Feature catalog" value={Object.keys(featureCatalog).length} subtitle="Capabilities available for packaging" accent="#3b82f6" icon="⚑" />
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 20 }}>
+            <MetricCard label="Plans" value={plans.length} subtitle="Published subscription tiers" accent="#c67c4e" icon="💳" />
+            <MetricCard label="Paid tiers" value={paidPlans} subtitle="Revenue-generating plans" accent="#22c55e" icon="💰" />
+            <MetricCard label="Assigned tenants" value={totalTenants} subtitle="Active workspaces in the pricing model" accent="#0f766e" icon="🏪" />
+            <MetricCard label="Feature keys" value={featureCount} subtitle="Unique packaged capabilities" accent="#3b82f6" icon="⚑" />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.2fr) minmax(280px, 0.9fr)', gap: 18, marginBottom: 18 }}>
-            <Card title="Plan adoption" subtitle="How tenants are currently distributed across pricing tiers.">
-              {distribution.length ? (
-                <ResponsiveContainer width="100%" height={260}>
-                  <BarChart data={distribution} margin={{ top: 8, right: 12, left: -24, bottom: 0 }}>
-                    <XAxis dataKey="plan" tick={{ fill: 'var(--text-3)', fontSize: 12 }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fill: 'var(--text-3)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
-                    <Tooltip content={<DistributionTooltip />} cursor={{ fill: 'rgba(198,124,78,0.08)' }} />
-                    <Bar dataKey="count" radius={[8, 8, 0, 0]}>
-                      {distribution.map((_, index) => <Cell key={index} fill={chartColors[index % chartColors.length]} />)}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
+          {showForm ? (
+            <Card
+              title={editId ? 'Edit subscription plan' : 'Create subscription plan'}
+              subtitle="Use comma-separated feature keys like POS, INVENTORY, STAFF_MANAGEMENT."
+              accent="#c67c4e"
+              style={{ marginBottom: 20 }}
+            >
+              <form onSubmit={handleSubmit}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 14 }}>
+                  <div>
+                    <label style={labelStyle}>Plan Name</label>
+                    <input
+                      required
+                      value={form.planName}
+                      onChange={(event) => setForm((current) => ({ ...current, planName: event.target.value }))}
+                      style={fieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Monthly Price</label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      value={form.price}
+                      onChange={(event) => setForm((current) => ({ ...current, price: event.target.value }))}
+                      style={fieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Order Limit</label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      value={form.orderLimit}
+                      onChange={(event) => setForm((current) => ({ ...current, orderLimit: event.target.value }))}
+                      style={fieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Staff Limit</label>
+                    <input
+                      required
+                      type="number"
+                      min="0"
+                      value={form.staffLimit}
+                      onChange={(event) => setForm((current) => ({ ...current, staffLimit: event.target.value }))}
+                      style={fieldStyle}
+                    />
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Status</label>
+                    <select
+                      value={form.planStatus}
+                      onChange={(event) => setForm((current) => ({ ...current, planStatus: event.target.value }))}
+                      style={fieldStyle}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                  <div style={{ gridColumn: '1 / -1' }}>
+                    <label style={labelStyle}>Feature Keys</label>
+                    <textarea
+                      rows="4"
+                      value={form.featureList}
+                      onChange={(event) => setForm((current) => ({ ...current, featureList: event.target.value }))}
+                      style={textareaStyle}
+                    />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 18, flexWrap: 'wrap' }}>
+                  <Button type="button" variant="ghost" onClick={resetEditor}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={saving}>
+                    {saving ? 'Saving...' : editId ? 'Update Plan' : 'Create Plan'}
+                  </Button>
+                </div>
+              </form>
+            </Card>
+          ) : null}
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(280px, 0.95fr)', gap: 18, marginBottom: 20 }}>
+            <Card
+              title="Revenue curve"
+              subtitle="Monthly invoice revenue generated across the billing ledger."
+              accent="#c67c4e"
+            >
+              {trendData.length ? (
+                <div style={{ width: '100%', height: 290 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={trendData}>
+                      <defs>
+                        <linearGradient id="subscriptionRevenueFill" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#c67c4e" stopOpacity="0.32" />
+                          <stop offset="100%" stopColor="#c67c4e" stopOpacity="0.04" />
+                        </linearGradient>
+                      </defs>
+                      <XAxis dataKey="month" tick={{ fill: 'var(--text-3)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: 'var(--text-3)', fontSize: 11 }} axisLine={false} tickLine={false} />
+                      <Tooltip content={<CompactTooltip money />} cursor={{ stroke: '#c67c4e', strokeDasharray: '4 4' }} />
+                      <Area type="monotone" dataKey="revenue" stroke="#c67c4e" strokeWidth={3} fill="url(#subscriptionRevenueFill)" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               ) : (
                 <EmptyState
-                  icon="📊"
-                  title="No adoption data yet"
-                  subtitle="Create plans and assign tenants to visualize packaging performance."
-                  compact
+                  icon="📉"
+                  title="No revenue trend yet"
+                  subtitle="Generate invoices or seed demo billing data to bring this chart to life."
                 />
               )}
             </Card>
 
-            <Card title="Adoption summary" subtitle="Quick read on how each tier is performing.">
-              <div style={{ display: 'grid', gap: 10 }}>
-                {distribution.length ? distribution.map((row, index) => (
-                  <div key={row.plan} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', padding: '12px 14px', borderRadius: 16, background: 'var(--bg-hover)' }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-1)' }}>{row.plan}</div>
-                      <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-3)' }}>{row.count} tenant{row.count === 1 ? '' : 's'}</div>
+            <Card
+              title="Renewals due soon"
+              subtitle="Active tenants with plan expiry dates approaching in the next 30 days."
+              accent="#0f766e"
+              actions={(
+                <Button variant="ghost" size="sm" onClick={() => navigate('/admin/subscriptions/renewals')}>
+                  View All
+                </Button>
+              )}
+            >
+              {expiringSoon.length ? (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {expiringSoon.map((tenant) => (
+                    <div
+                      key={tenant._id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'auto 1fr auto',
+                        gap: 12,
+                        alignItems: 'center',
+                        padding: '12px 14px',
+                        borderRadius: 16,
+                        background: 'var(--bg-base)',
+                        border: '1px solid var(--border)',
+                      }}
+                    >
+                      <div style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 14,
+                        background: 'rgba(15,118,110,0.12)',
+                        color: '#0f766e',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                      }}>
+                        {String(tenant.cafeName || 'C').slice(0, 1).toUpperCase()}
+                      </div>
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--text-1)' }}>{tenant.cafeName}</div>
+                        <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-3)' }}>
+                          {tenant.subscriptionPlan} • expires in {tenant.daysLeft} day{tenant.daysLeft === 1 ? '' : 's'}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 13, fontWeight: 800, color: '#c67c4e' }}>
+                        ₹{Number(priceMap[tenant.subscriptionPlan] || 0).toLocaleString('en-IN')}
+                      </div>
                     </div>
-                    <div style={{ width: 10, height: 10, borderRadius: '50%', background: chartColors[index % chartColors.length], flexShrink: 0 }} />
-                  </div>
-                )) : (
-                  <EmptyState
-                    icon="💳"
-                    title="No plan activity yet"
-                    subtitle="Tenants will appear here as soon as plan assignments begin."
-                    compact
-                  />
-                )}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon="⏱"
+                  title="No renewals due soon"
+                  subtitle="Everything in the current tenant set looks comfortably scheduled."
+                />
+              )}
             </Card>
           </div>
 
-	          {plans.length ? (
-	            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 18 }}>
-	              {plans.map((plan) => (
-	                <PlanCard
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(320px, 0.9fr)', gap: 18, marginBottom: 20 }}>
+            <Card
+              title="Plan adoption"
+              subtitle="Tenant distribution across subscription tiers."
+              accent="#3b82f6"
+            >
+              {distribution.length ? (
+                <div style={{ width: '100%', height: 280 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={distribution} margin={{ top: 8, right: 8, left: -18, bottom: 0 }}>
+                      <XAxis dataKey="plan" tick={{ fill: 'var(--text-3)', fontSize: 12 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: 'var(--text-3)', fontSize: 11 }} axisLine={false} tickLine={false} allowDecimals={false} />
+                      <Tooltip content={<CompactTooltip />} cursor={{ fill: 'rgba(59,130,246,0.08)' }} />
+                      <Bar dataKey="count" radius={[10, 10, 0, 0]}>
+                        {distribution.map((_, index) => (
+                          <Cell key={index} fill={chartColors[index % chartColors.length]} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <EmptyState
+                  icon="📊"
+                  title="No plan adoption yet"
+                  subtitle="Assign tenants to plans to reveal uptake patterns here."
+                />
+              )}
+            </Card>
+
+            <Card
+              title="Revenue by plan"
+              subtitle="Current recurring value and tenant count by tier."
+              accent="#8b5cf6"
+            >
+              {planRevenueCards.length ? (
+                <div style={{ display: 'grid', gap: 12 }}>
+                  {planRevenueCards.map((plan, index) => (
+                    <div
+                      key={plan.plan}
+                      style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        gap: 14,
+                        alignItems: 'center',
+                        padding: '14px 16px',
+                        borderRadius: 16,
+                        border: '1px solid var(--border)',
+                        background: `linear-gradient(90deg, ${chartColors[index % chartColors.length]}12, transparent)`,
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-1)' }}>{plan.plan}</div>
+                        <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-3)' }}>
+                          {plan.tenantCount} tenant{plan.tenantCount === 1 ? '' : 's'} • ₹{Number(plan.unitPrice).toLocaleString('en-IN')}/month
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 18, fontWeight: 900, color: '#c67c4e' }}>
+                        ₹{Number(plan.revenue).toLocaleString('en-IN')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  icon="🧾"
+                  title="No plan revenue yet"
+                  subtitle="Once invoice activity starts, this panel will break down plan performance."
+                />
+              )}
+            </Card>
+          </div>
+
+          {!plans.length ? (
+            <EmptyState
+              icon="💳"
+              title="No plans yet"
+              subtitle='Start with "New Plan" to create your first subscription tier.'
+            />
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 20, marginBottom: 20 }}>
+              {plans.map((plan) => (
+                <PlanCard
                   key={plan._id}
                   plan={plan}
-                  tenantCount={countByPlan[plan.planName] || 0}
-                  onEdit={openEdit}
-                  onDelete={(planId) => {
-                    if (window.confirm('Delete this plan? Existing tenant assignments may need follow-up.')) {
-                      deletePlanRecord(planId);
-                    }
-                  }}
-	                />
-	              ))}
-	            </div>
-	          ) : null}
-	        </>
-	      ) : null}
-
-      {loading && <PageSpinner />}
-      {error && <ErrorBanner message={error} />}
-
-      {!loading && !error && plans.length === 0 && (
-        <EmptyState icon="💳" title="No plans yet" subtitle='Click "+ New Plan" to get started.' />
-      )}
-
-      {/* ── Plan cards grid ── */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: 20 }}>
-        {plans.map((plan) => (
-          <PlanCard
-            key={plan._id}
-            plan={plan}
-            tenantCount={countMap[plan.planName] ?? 0}
-            onEdit={() => openEdit(plan)}
-            onDelete={() => setConfirm({ id: plan._id, name: plan.planName })}
-          />
-        ))}
-      </div>
-
-      {/* ── Recent Subscription Activity ── */}
-      {!loading && (
-        <div style={{ marginTop: 28, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, flexWrap: 'wrap', gap: 10 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-1)' }}>Recent Subscription Activity</div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {['All', 'Billing', 'Tenant Events'].map((label) => (
-                <button
-                  key={label}
-                  onClick={() => setActivityFilter(label)}
-                  style={{
-                    fontSize: 11, fontWeight: 700, padding: '4px 10px', borderRadius: 999,
-                    background: activityFilter === label ? '#C67C4E' : 'var(--bg-hover)',
-                    color: activityFilter === label ? '#fff' : 'var(--text-2)',
-                    border: activityFilter === label ? 'none' : '1px solid var(--border)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {label}
-                </button>
+                  tenantCount={countMap[plan.planName] ?? 0}
+                  onEdit={() => openEdit(plan)}
+                  onDelete={() => setConfirm({ id: plan._id, name: plan.planName })}
+                />
               ))}
             </div>
-          </div>
-          {recentActivity.length === 0 ? (
-            <div style={{ color: 'var(--text-3)', fontSize: 13 }}>No recent activity.</div>
-          ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                <thead>
-                  <tr style={{ textAlign: 'left', color: 'var(--text-3)' }}>
-                    {['Entity', 'Action', 'Plan', 'Amount'].map((h) => (
-                      <th key={h} style={{ padding: '10px 8px', borderBottom: '1px solid var(--border)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', fontSize: 10 }}>
-                        {h}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {recentActivity.map((inv) => (
-                    <tr key={`${inv.type}-${inv.ts}-${inv.entity}`} style={{ borderBottom: '1px solid var(--border)' }}>
-                      <td style={{ padding: '10px 8px', color: 'var(--text-1)', fontWeight: 600 }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <div style={{
-                            width: 26, height: 26, borderRadius: 8, background: 'var(--bg-hover)',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700,
-                          }}>
-                            {initials(inv.entity || 'T')}
-                          </div>
-                          {inv.entity || 'Tenant'}
-                        </div>
-                      </td>
-                      <td style={{ padding: '10px 8px' }}>
-                        <span style={{
-                          fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 999,
-                          background: inv.type === 'invoice'
-                            ? (inv.status === 'Paid' ? 'rgba(34,197,94,0.12)' : inv.status === 'Pending' ? 'rgba(245,158,11,0.12)' : 'rgba(239,68,68,0.12)')
-                            : 'rgba(59,130,246,0.12)',
-                          color: inv.type === 'invoice'
-                            ? (inv.status === 'Paid' ? '#22c55e' : inv.status === 'Pending' ? '#f59e0b' : '#ef4444')
-                            : '#3b82f6',
-                        }}>
-                          {inv.action}
-                        </span>
-                      </td>
-                      <td style={{ padding: '10px 8px', color: 'var(--text-2)' }}>{inv.plan}</td>
-                      <td style={{ padding: '10px 8px', fontWeight: 700, color: 'var(--text-1)' }}>{inv.amount ? money(inv.amount) : '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           )}
-        </div>
-      )}
 
-      {confirm && (
+          <Card
+            title="Recent subscription activity"
+            subtitle="Latest billing and tenant-level platform activity touching the subscription lifecycle."
+            accent="#0f766e"
+          >
+            {activityRows.length ? (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+                  <thead>
+                    <tr style={{ textAlign: 'left', color: 'var(--text-3)' }}>
+                      {['Entity', 'Action', 'Plan', 'Amount'].map((heading) => (
+                        <th
+                          key={heading}
+                          style={{
+                            padding: '10px 8px',
+                            borderBottom: '1px solid var(--border)',
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.08em',
+                            fontSize: 10,
+                          }}
+                        >
+                          {heading}
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activityRows.map((row) => (
+                      <tr key={row.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                        <td style={{ padding: '10px 8px', color: 'var(--text-1)', fontWeight: 700 }}>{row.entity}</td>
+                        <td style={{ padding: '10px 8px', color: 'var(--text-2)' }}>{row.action}</td>
+                        <td style={{ padding: '10px 8px', color: 'var(--text-2)' }}>{row.plan}</td>
+                        <td style={{ padding: '10px 8px', color: 'var(--text-1)', fontWeight: 800 }}>
+                          {row.amount ? `₹${Number(row.amount).toLocaleString('en-IN')}` : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <EmptyState
+                icon="📋"
+                title="No recent activity"
+                subtitle="Billing events and tenant changes will show up here once the system is in motion."
+              />
+            )}
+          </Card>
+        </>
+      ) : null}
+
+      {confirm ? (
         <ConfirmDialog
           open
           danger
@@ -761,7 +649,7 @@ export default function SubscriptionManagement() {
           onConfirm={() => handleDelete(confirm.id)}
           onCancel={() => setConfirm(null)}
         />
-      )}
+      ) : null}
     </AdminLayout>
   );
 }
