@@ -394,7 +394,22 @@ async function getBillingSummary(req, res) {
 
     const churnRate = base > 0 ? Number(((churned / base) * 100).toFixed(1)) : 0;
 
-    res.json({ success: true, data: { mrr, revenueByPlan, trend, churnRate } });
+    res.json({
+      success: true,
+      data: {
+        mrr,
+        payingTenants,
+        freeVsPaid: {
+          free: freeTenants,
+          paid: payingTenants,
+          totalActive: activeTenants.length,
+        },
+        monthlyGrowthPct,
+        revenueByPlan,
+        trend: globalTrend,
+        churnRate,
+      },
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

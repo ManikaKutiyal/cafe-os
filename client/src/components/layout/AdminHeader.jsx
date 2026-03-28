@@ -1,9 +1,9 @@
-import { useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
 import { useNotificationsCenter } from '../../context/NotificationsContext';
-import { adminSearchItems, notificationVisualMap } from '../../utils/adminConstants';
+import { notificationVisualMap } from '../../utils/adminConstants';
 import { formatRelativeTime } from '../../utils/adminFormat';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -13,9 +13,7 @@ import {
   IconCheck,
   IconChevronD,
   IconLogout,
-  IconMenu,
   IconMoon,
-  IconSearch,
   IconSettings,
   IconSun,
   IconUser,
@@ -40,19 +38,10 @@ export default function AdminHeader({ onToggleSidebar, isMobile }) {
     markAllRead,
     markOneRead,
   } = useNotificationsCenter();
-  const [query, setQuery] = useState('');
-  const [showResults, setShowResults] = useState(false);
   const [bellOpen, setBellOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
-  const searchRef = useRef(null);
   const bellRef = useRef(null);
   const profileRef = useRef(null);
-  const deferredQuery = useDeferredValue(query);
-
-  const filteredItems = useMemo(() => {
-    if (!deferredQuery) return [];
-    return adminSearchItems.filter((item) => item.label.toLowerCase().includes(deferredQuery.toLowerCase()));
-  }, [deferredQuery]);
 
   const displayName = user?.name || user?.email || 'Admin';
   const initials = displayName
@@ -74,19 +63,10 @@ export default function AdminHeader({ onToggleSidebar, isMobile }) {
       }
     };
 
-    const handleShortcut = (event) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
-        event.preventDefault();
-        searchRef.current?.focus();
-      }
-    };
-
     document.addEventListener('mousedown', handleMouseDown);
-    document.addEventListener('keydown', handleShortcut);
 
     return () => {
       document.removeEventListener('mousedown', handleMouseDown);
-      document.removeEventListener('keydown', handleShortcut);
     };
   }, []);
 
@@ -114,102 +94,7 @@ export default function AdminHeader({ onToggleSidebar, isMobile }) {
           padding: isMobile ? '12px 14px' : '14px 18px',
         }}
       >
-        <button
-          onClick={onToggleSidebar}
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 14,
-            border: '1px solid var(--border)',
-            background: 'var(--bg-hover)',
-            color: 'var(--text-1)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          <IconMenu size={18} />
-        </button>
-
-        <div style={{ flex: 1, position: 'relative', minWidth: 0 }}>
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-              minHeight: 44,
-              borderRadius: 14,
-              background: 'var(--bg-hover)',
-              border: `1px solid ${showResults ? '#c67c4e' : 'transparent'}`,
-              padding: '0 14px',
-            }}
-          >
-            <IconSearch size={15} style={{ color: 'var(--text-3)', flexShrink: 0 }} />
-            <input
-              ref={searchRef}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              onFocus={() => setShowResults(true)}
-              onBlur={() => setTimeout(() => setShowResults(false), 160)}
-              placeholder="Jump to dashboard, billing, tenants, notifications..."
-              style={{
-                width: '100%',
-                border: 'none',
-                background: 'transparent',
-                outline: 'none',
-                color: 'var(--text-1)',
-                fontSize: 13,
-              }}
-            />
-            {!query ? (
-              <kbd style={{ padding: '2px 7px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-card)', fontSize: 11, color: 'var(--text-3)' }}>
-                ⌘K
-              </kbd>
-            ) : null}
-          </div>
-
-          {showResults && filteredItems.length > 0 ? (
-            <div
-              style={{
-                position: 'absolute',
-                top: 'calc(100% + 8px)',
-                left: 0,
-                right: 0,
-                borderRadius: 18,
-                background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
-                boxShadow: 'var(--shadow-lg)',
-                overflow: 'hidden',
-              }}
-            >
-              {filteredItems.map((item) => (
-                <button
-                  key={item.to}
-                  onMouseDown={() => {
-                    navigate(item.to);
-                    setQuery('');
-                    setShowResults(false);
-                  }}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    border: 'none',
-                    background: 'transparent',
-                    padding: '12px 14px',
-                    fontSize: 13,
-                    fontWeight: 600,
-                    color: 'var(--text-2)',
-                    cursor: 'pointer',
-                  }}
-                >
-                  {item.label}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </div>
+        <div style={{ flex: 1 }} />
 
         <Button variant="secondary" size="md" onClick={toggle} leadingIcon={dark ? <IconSun size={15} /> : <IconMoon size={15} />}>
           {!isMobile ? (dark ? 'Light' : 'Dark') : null}

@@ -1,58 +1,20 @@
-import { useNavigate } from 'react-router-dom';
 import AdminLayout from '../../components/admin/AdminLayout';
 import AnalyticsChart from '../../components/admin/AnalyticsChart';
 import { DashboardSkeleton, ErrorBanner } from '../../components/admin/SkeletonLoader';
-import DashboardQuickActions from '../../components/dashboard/DashboardQuickActions';
 import PageHeader from '../../components/layout/PageHeader';
 import Card from '../../components/ui/Card';
 import EmptyState from '../../components/ui/EmptyState';
 import MetricCard from '../../components/ui/MetricCard';
-import StatusBadge from '../../components/ui/StatusBadge';
 import { useDashboardOverview } from '../../hooks/useDashboardOverview';
 import { formatMoney } from '../../utils/adminFormat';
 
-const HEALTH = [
-  { label: 'API Server', status: 'Paid', text: 'Operational' },
-  { label: 'Database', status: 'Paid', text: 'Healthy' },
-  { label: 'Notification jobs', status: 'Pending', text: 'Polling every 30s' },
-];
-
 export default function AdminDashboard() {
-  const navigate = useNavigate();
   const {
     analytics,
     billingSummary,
     loading,
     error,
-    unreadNotifications,
   } = useDashboardOverview();
-
-  const quickActions = [
-    {
-      icon: '🏪',
-      label: 'Add tenant',
-      description: 'Create a new cafe workspace and issue owner credentials.',
-      onClick: () => navigate('/admin/tenants'),
-    },
-    {
-      icon: '💳',
-      label: 'Manage plans',
-      description: 'Update pricing, limits, and package availability.',
-      onClick: () => navigate('/admin/subscriptions'),
-    },
-    {
-      icon: '🧾',
-      label: 'Billing control',
-      description: 'Generate invoices, retry payments, and inspect collections.',
-      onClick: () => navigate('/admin/billing'),
-    },
-    {
-      icon: '⚑',
-      label: 'Feature rollout',
-      description: 'Toggle capabilities by plan or tenant override.',
-      onClick: () => navigate('/admin/feature-flags'),
-    },
-  ];
 
   return (
     <AdminLayout>
@@ -79,25 +41,6 @@ export default function AdminDashboard() {
             <MetricCard label="Total tenants" value={analytics.totalCafes} subtitle="Registered workspaces across the platform" accent="#c67c4e" icon="🏪" />
             <MetricCard label="Active tenants" value={analytics.activeTenants} subtitle={`${analytics.suspendedTenants} suspended · ${analytics.expiredTenants} expired`} accent="#22c55e" icon="⚡" />
             <MetricCard label="Platform MRR" value={formatMoney(billingSummary?.mrr || analytics.mrr || 0)} trend={billingSummary?.monthlyGrowthPct || 0} subtitle="Recurring subscription revenue" accent="#0f766e" icon="💰" />
-            <MetricCard label="Unread notifications" value={unreadNotifications} subtitle="Centralized alerts and events awaiting review" accent="#3b82f6" icon="🔔" />
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.35fr) minmax(280px, 0.9fr)', gap: 18, marginBottom: 24 }}>
-            <DashboardQuickActions actions={quickActions} />
-
-            <Card title="Platform health" subtitle="Operational signals across the admin control plane.">
-              <div style={{ display: 'grid', gap: 12 }}>
-                {HEALTH.map((item) => (
-                  <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'center', paddingBottom: 12, borderBottom: '1px solid var(--border)' }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-1)' }}>{item.label}</div>
-                      <div style={{ marginTop: 4, fontSize: 12, color: 'var(--text-3)' }}>{item.text}</div>
-                    </div>
-                    <StatusBadge status={item.status} />
-                  </div>
-                ))}
-              </div>
-            </Card>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 18, marginBottom: 24 }}>
