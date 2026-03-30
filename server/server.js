@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(
   cors({
-    origin: ["http://localhost:3000", "http://localhost:5173"],
+    origin: ["http://localhost:3000", "http://localhost:5173", "https://cafe-os-taupe.vercel.app"],
     credentials: true,
   })
 );
