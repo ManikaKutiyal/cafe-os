@@ -22,7 +22,9 @@ const TableManagement = () => {
 
     // Derive cafeId from user. In this system cafeId is typically user.tenantId or user.cafeId. 
     // Based on other owner contexts, let's assume it's user.cafeId or user.id. Wait, let's just use user.cafeId if available, else user.tenantId, else user.id.
-    const cafeId = user?.tenantId || user?.cafeId || user?.id;
+    // ownerId is the User's document ID, cafeId is the Cafe's document ID
+    const ownerId = user?.id || user?._id;
+    const cafeId = user?.cafeId || ownerId;
 
     const fetchTables = async () => {
         try {
@@ -45,7 +47,7 @@ const TableManagement = () => {
 
     const fetchLocationSettings = async () => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/auth/owner/${cafeId}/locationSettings`, { withCredentials: true });
+            const res = await axios.get(`http://localhost:5000/api/auth/owner/${ownerId}/locationSettings`, { withCredentials: true });
             if (res.data) setLocationSettings(res.data);
         } catch (err) {
             console.error('Failed to load location settings', err);
@@ -53,16 +55,16 @@ const TableManagement = () => {
     };
 
     useEffect(() => {
-        if (cafeId) {
+        if (ownerId || cafeId) {
             fetchTables();
             fetchLocationSettings();
         }
-    }, [cafeId]);
+    }, [ownerId, cafeId]);
 
     const handleSaveLocationSettings = async () => {
         try {
             setSavingLocation(true);
-            await axios.put(`http://localhost:5000/api/auth/owner/${cafeId}/locationSettings`, locationSettings, { withCredentials: true });
+            await axios.put(`http://localhost:5000/api/auth/owner/${ownerId}/locationSettings`, locationSettings, { withCredentials: true });
             toast.success('Location settings saved successfully!');
         } catch (err) {
             console.error(err);

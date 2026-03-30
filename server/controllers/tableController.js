@@ -1,3 +1,4 @@
+const mongoose = require('mongoose');
 const Table = require('../models/Table');
 const Owner = require('../models/Owner');
 const User = require('../models/User');
@@ -82,7 +83,13 @@ exports.getTableStatus = async (req, res) => {
 
         const table = tableDoc.toObject();
         let owner = await User.findById(cafeId);
+        if (!owner && mongoose.Types.ObjectId.isValid(cafeId)) {
+            owner = await User.findOne({ cafeId, role: 'owner' });
+        }
         if (!owner) owner = await Owner.findById(cafeId); // Fallback just in case
+        if (!owner && mongoose.Types.ObjectId.isValid(cafeId)) {
+            owner = await Owner.findOne({ cafeId }); // Some legacy owners might have cafeId field
+        }
 
         if (owner && owner.locationSettings && owner.locationSettings.enabled) {
             table.locationRequired = true;
@@ -109,7 +116,13 @@ exports.occupyTable = async (req, res) => {
 
         // Enforce Geofencing if enabled
         let owner = await User.findById(cafeId);
+        if (!owner && mongoose.Types.ObjectId.isValid(cafeId)) {
+            owner = await User.findOne({ cafeId, role: 'owner' });
+        }
         if (!owner) owner = await Owner.findById(cafeId); // Fallback
+        if (!owner && mongoose.Types.ObjectId.isValid(cafeId)) {
+            owner = await Owner.findOne({ cafeId });
+        }
 
         if (owner && owner.locationSettings && owner.locationSettings.enabled) {
             const { latitude, longitude, radius } = owner.locationSettings;

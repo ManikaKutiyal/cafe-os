@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const User = require("../models/User");
@@ -172,7 +173,7 @@ const login = async (req, res) => {
       });
 
       await ensureTenant({ cafeName: owner.cafeName, ownerName: owner.name, email });
-      await Owner.findByIdAndDelete(owner._id).catch(() => {});
+      await Owner.findByIdAndDelete(owner._id).catch(() => { });
     } else {
       // 3. Compare password using bcrypt (matchPassword method on User model)
       if (!(await user.matchPassword(password))) {
@@ -212,10 +213,17 @@ const getProfile = async (req, res) => {
 // GET /api/auth/owner/:id/locationSettings
 const getLocationSettings = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const { id } = req.params;
+    // Try finding by User Object ID first, then by its associated cafeId
+    let user = await User.findById(id);
+    if (!user && mongoose.Types.ObjectId.isValid(id)) {
+      user = await User.findOne({ cafeId: id, role: 'owner' });
+    }
+
     if (!user) return res.status(404).json({ message: 'Owner not found' });
     res.json(user.locationSettings || { enabled: false, radius: 100 });
   } catch (error) {
+    console.error('getLocationSettings error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -223,8 +231,14 @@ const getLocationSettings = async (req, res) => {
 // PUT /api/auth/owner/:id/locationSettings
 const updateLocationSettings = async (req, res) => {
   try {
+    const { id } = req.params;
     const { latitude, longitude, radius, enabled } = req.body;
-    const user = await User.findById(req.params.id);
+
+    let user = await User.findById(id);
+    if (!user && mongoose.Types.ObjectId.isValid(id)) {
+      user = await User.findOne({ cafeId: id, role: 'owner' });
+    }
+
     if (!user) return res.status(404).json({ message: 'Owner not found' });
 
     user.locationSettings = {
@@ -237,6 +251,7 @@ const updateLocationSettings = async (req, res) => {
     await user.save();
     res.json(user.locationSettings);
   } catch (error) {
+    console.error('updateLocationSettings error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
