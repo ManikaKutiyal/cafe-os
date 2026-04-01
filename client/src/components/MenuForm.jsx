@@ -4,7 +4,8 @@ import api from '../api/axios';
 import { X, Upload, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+// Get the base URL from the axios instance for images
+const API_BASE = api.defaults.baseURL.replace(/\/api\/?$/, '');
 
 const MenuForm = ({ onClose, onSuccess, editingItem, existingCategories = [], initialCategory = '' }) => {
     const [formData, setFormData] = useState({

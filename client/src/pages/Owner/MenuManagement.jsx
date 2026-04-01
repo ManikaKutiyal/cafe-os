@@ -20,7 +20,8 @@ import {
 } from 'lucide-react';
 import MenuForm from '../../components/MenuForm';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+// Get the base URL from the axios instance for images
+const API_BASE = api.defaults.baseURL.replace(/\/api\/?$/, '');
 
 const MenuManagement = () => {
     const [items, setItems] = useState([]);

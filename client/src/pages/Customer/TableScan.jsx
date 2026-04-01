@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import axios from 'axios';
+import ownerApi, { api } from '../../services/api';
 import { Coffee, CheckCircle, XCircle, ShoppingBag, Loader2, Search, Heart, Plus, Minus, X, Trash2 } from 'lucide-react';
 
-const API_BASE = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+// Get the base URL from the axios instance for images
+const API_BASE = api.defaults.baseURL.replace(/\/api\/?$/, '');
 
 const TableScan = () => {
     const { cafeId, tableNumber } = useParams();
@@ -40,8 +41,8 @@ const TableScan = () => {
     const fetchTableStatus = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`http://localhost:5000/api/tables/${cafeId}/${tableNumber}`);
-            setTable(res.data);
+            const data = await ownerApi.getTableStatus(cafeId, tableNumber);
+            setTable(data);
             const savedSession = sessionStorage.getItem(`table_${cafeId}_${tableNumber}`);
             if (savedSession === 'occupied') {
                 setOccupiedByMe(true);
@@ -58,8 +59,8 @@ const TableScan = () => {
     const fetchMenu = async () => {
         try {
             setLoadingMenu(true);
-            const res = await axios.get(`${API_BASE}/api/menu?cafeId=${cafeId}`);
-            const cafeMenu = res.data.filter(item => item.inStock || item.stock);
+            const data = await ownerApi.getMenuItems(cafeId);
+            const cafeMenu = data.filter(item => item.inStock || item.stock);
             setMenu(cafeMenu);
         } catch (err) {
             console.error(err);
@@ -92,7 +93,7 @@ const TableScan = () => {
     const occupyTableWithLocation = async (lat, lng) => {
         try {
             setLoading(true);
-            await axios.post(`http://localhost:5000/api/tables/${cafeId}/${tableNumber}/occupy`, {
+            await ownerApi.occupyTable(cafeId, tableNumber, {
                 userLat: lat,
                 userLng: lng
             });
@@ -102,7 +103,7 @@ const TableScan = () => {
             fetchMenu();
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.message || 'Failed to occupy table.');
+            setError(err.message || 'Failed to occupy table.');
             fetchTableStatus();
         } finally {
             setLoading(false);

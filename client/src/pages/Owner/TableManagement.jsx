@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import toast from 'react-hot-toast';
-import axios from 'axios';
+import ownerApi from '../../services/api';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useAuth } from '../../context/AuthContext';
 import { QrCode, Plus, Save, Trash2, Printer, RefreshCw, XCircle, Download } from 'lucide-react';
@@ -29,12 +29,10 @@ const TableManagement = () => {
     const fetchTables = async () => {
         try {
             setLoading(true);
-            const res = await axios.get(`http://localhost:5000/api/tables/${cafeId}`, {
-                withCredentials: true
-            });
-            setTables(res.data);
-            if (res.data.length > 0) {
-                setTableCountInput(res.data.length.toString());
+            const data = await ownerApi.getTables(cafeId);
+            setTables(data);
+            if (data.length > 0) {
+                setTableCountInput(data.length.toString());
             }
             setError(null);
         } catch (err) {
@@ -47,8 +45,8 @@ const TableManagement = () => {
 
     const fetchLocationSettings = async () => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/auth/owner/${ownerId}/locationSettings`, { withCredentials: true });
-            if (res.data) setLocationSettings(res.data);
+            const data = await ownerApi.getLocationSettings(ownerId);
+            if (data) setLocationSettings(data);
         } catch (err) {
             console.error('Failed to load location settings', err);
         }
@@ -64,7 +62,7 @@ const TableManagement = () => {
     const handleSaveLocationSettings = async () => {
         try {
             setSavingLocation(true);
-            await axios.put(`http://localhost:5000/api/auth/owner/${ownerId}/locationSettings`, locationSettings, { withCredentials: true });
+            await ownerApi.updateLocationSettings(ownerId, locationSettings);
             toast.success('Location settings saved successfully!');
         } catch (err) {
             console.error(err);
@@ -101,13 +99,8 @@ const TableManagement = () => {
 
         try {
             setGenerating(true);
-            const res = await axios.post('http://localhost:5000/api/tables/generate', {
-                cafeId: cafeId,
-                numberOfTables: parseInt(tableCountInput)
-            }, {
-                withCredentials: true
-            });
-            setTables(res.data);
+            const data = await ownerApi.generateTables(cafeId, parseInt(tableCountInput));
+            setTables(data);
             setError(null);
         } catch (err) {
             console.error(err);
@@ -179,9 +172,7 @@ const TableManagement = () => {
             message: `Are you sure you want to mark Table ${tableNumber} as vacant?`,
             onConfirm: async () => {
                 try {
-                    await axios.post(`http://localhost:5000/api/tables/${cafeId}/${tableNumber}/free`, {}, {
-                        withCredentials: true
-                    });
+                    await ownerApi.freeTable(cafeId, tableNumber);
                     setTables(tables.map(t => t.tableNumber === tableNumber ? { ...t, isOccupied: false, currentSession: null } : t));
                 } catch (err) {
                     console.error(err);

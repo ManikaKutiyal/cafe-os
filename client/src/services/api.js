@@ -4,6 +4,16 @@ const rawBase = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 const sanitizedBase = rawBase.replace(/\/$/, '');
 const baseURL = sanitizedBase.endsWith('/api') ? sanitizedBase : `${sanitizedBase}/api`;
 
+// Check if running on a deployed site but still using localhost API
+if (typeof window !== 'undefined' &&
+  !window.location.hostname.includes('localhost') &&
+  baseURL.includes('localhost')) {
+  console.warn(
+    `[API] Currently connecting to ${baseURL} while the app is running on ${window.location.origin}. ` +
+    `Ensure VITE_API_URL is set correctly in your deployment environment.`
+  );
+}
+
 const getToken = () => localStorage.getItem('token');
 
 export const api = axios.create({
@@ -81,6 +91,24 @@ const ownerApi = {
     apiRequest({ url: '/customers', method: 'post', data: customer }),
   addOrder: (customerId, order) =>
     apiRequest({ url: `/customers/${customerId}/orders`, method: 'post', data: order }),
+
+  // Table Management
+  getTables: (cafeId) =>
+    apiRequest({ url: `/tables/${cafeId}`, method: 'get' }),
+  generateTables: (cafeId, numberOfTables) =>
+    apiRequest({ url: '/tables/generate', method: 'post', data: { cafeId, numberOfTables } }),
+  freeTable: (cafeId, tableNumber) =>
+    apiRequest({ url: `/tables/${cafeId}/${tableNumber}/free`, method: 'post' }),
+  occupyTable: (cafeId, tableNumber) =>
+    apiRequest({ url: `/tables/${cafeId}/${tableNumber}/occupy`, method: 'post' }),
+  getTableStatus: (cafeId, tableNumber) =>
+    apiRequest({ url: `/tables/${cafeId}/${tableNumber}`, method: 'get' }),
+
+  // Owner Location Settings
+  getLocationSettings: (ownerId) =>
+    apiRequest({ url: `/auth/owner/${ownerId}/locationSettings`, method: 'get' }),
+  updateLocationSettings: (ownerId, settings) =>
+    apiRequest({ url: `/auth/owner/${ownerId}/locationSettings`, method: 'put', data: settings }),
 };
 
 export default ownerApi;
