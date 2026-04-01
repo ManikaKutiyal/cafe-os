@@ -99,8 +99,8 @@ const ownerApi = {
     apiRequest({ url: '/tables/generate', method: 'post', data: { cafeId, numberOfTables } }),
   freeTable: (cafeId, tableNumber) =>
     apiRequest({ url: `/tables/${cafeId}/${tableNumber}/free`, method: 'post' }),
-  occupyTable: (cafeId, tableNumber) =>
-    apiRequest({ url: `/tables/${cafeId}/${tableNumber}/occupy`, method: 'post' }),
+  occupyTable: (cafeId, tableNumber, data) =>
+    apiRequest({ url: `/tables/${cafeId}/${tableNumber}/occupy`, method: 'post', data }),
   getTableStatus: (cafeId, tableNumber) =>
     apiRequest({ url: `/tables/${cafeId}/${tableNumber}`, method: 'get' }),
 

@@ -79,25 +79,31 @@ exports.getTableStatus = async (req, res) => {
     const { cafeId, tableNumber } = req.params;
     try {
         const tableDoc = await Table.findOne({ cafeId, tableNumber: parseInt(tableNumber) });
-        if (!tableDoc) return res.status(404).json({ message: 'Table not found' });
+        if (!tableDoc) return res.status(404).json({ message: 'Table not found. Please scan a valid QR code.' });
 
         const table = tableDoc.toObject();
+
+        // Find owner to check geofencing settings
         let owner = await User.findById(cafeId);
         if (!owner && mongoose.Types.ObjectId.isValid(cafeId)) {
             owner = await User.findOne({ cafeId, role: 'owner' });
         }
-        if (!owner) owner = await Owner.findById(cafeId); // Fallback just in case
+        if (!owner) owner = await Owner.findById(cafeId);
         if (!owner && mongoose.Types.ObjectId.isValid(cafeId)) {
-            owner = await Owner.findOne({ cafeId }); // Some legacy owners might have cafeId field
+            owner = await Owner.findOne({ cafeId });
         }
 
         if (owner && owner.locationSettings && owner.locationSettings.enabled) {
-            table.locationRequired = true;
+            // Only require location if coordinates are actually set
+            if (owner.locationSettings.latitude != null && owner.locationSettings.longitude != null) {
+                table.locationRequired = true;
+            }
         }
 
         res.status(200).json(table);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('[getTableStatus] Error:', err);
+        res.status(500).json({ message: 'Server error while fetching table status.' });
     }
 };
 
@@ -108,10 +114,10 @@ exports.occupyTable = async (req, res) => {
     const { userLat, userLng } = req.body || {};
     try {
         const table = await Table.findOne({ cafeId, tableNumber: parseInt(tableNumber) });
-        if (!table) return res.status(404).json({ message: 'Table not found' });
+        if (!table) return res.status(404).json({ message: 'Table not found.' });
 
         if (table.isOccupied) {
-            return res.status(400).json({ message: 'Table is already occupied' });
+            return res.status(400).json({ message: 'This table is already occupied by another customer.' });
         }
 
         // Enforce Geofencing if enabled
@@ -119,7 +125,7 @@ exports.occupyTable = async (req, res) => {
         if (!owner && mongoose.Types.ObjectId.isValid(cafeId)) {
             owner = await User.findOne({ cafeId, role: 'owner' });
         }
-        if (!owner) owner = await Owner.findById(cafeId); // Fallback
+        if (!owner) owner = await Owner.findById(cafeId);
         if (!owner && mongoose.Types.ObjectId.isValid(cafeId)) {
             owner = await Owner.findOne({ cafeId });
         }
@@ -128,11 +134,11 @@ exports.occupyTable = async (req, res) => {
             const { latitude, longitude, radius } = owner.locationSettings;
             if (latitude != null && longitude != null) {
                 if (userLat == null || userLng == null) {
-                    return res.status(403).json({ message: 'Location access is required to view this menu.' });
+                    return res.status(403).json({ message: 'Location access is required to view the menu at this cafe.' });
                 }
                 const distance = getDistanceFromLatLonInM(latitude, longitude, userLat, userLng);
                 if (distance > (radius || 100)) {
-                    return res.status(403).json({ message: 'You must be physically present in the cafe to view the menu.' });
+                    return res.status(403).json({ message: 'Validation failed: You must be physically present in the cafe to view the menu.' });
                 }
             }
         }
@@ -141,7 +147,8 @@ exports.occupyTable = async (req, res) => {
         await table.save();
         res.status(200).json(table);
     } catch (err) {
-        res.status(500).json({ message: err.message });
+        console.error('[occupyTable] Error:', err);
+        res.status(500).json({ message: 'Server error while occupying table.' });
     }
 };
 

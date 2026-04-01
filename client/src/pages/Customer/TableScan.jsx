@@ -120,12 +120,23 @@ const TableScan = () => {
     }
 
     if (error || !table) {
+        const isLocationError = error && (error.toLowerCase().includes('location') || error.toLowerCase().includes('present'));
+        const isOccupiedError = error && error.toLowerCase().includes('occupied');
+
         return (
             <div className="min-h-screen bg-[#FDFDFD] flex items-center justify-center p-6 font-inter">
                 <div className="bg-white p-8 rounded-3xl shadow-xl max-w-md w-full text-center border border-[#EFEBE4]">
                     <XCircle className="text-red-500 mx-auto mb-4" size={64} />
-                    <h1 className="text-2xl font-bold text-[#1A1A1A] mb-2">Invalid Table</h1>
-                    <p className="text-gray-500 mb-6">{error || 'This table does not exist.'}</p>
+                    <h1 className="text-2xl font-bold text-[#1A1A1A] mb-2">
+                        {isLocationError ? 'Location Error' : isOccupiedError ? 'Table Occupied' : 'Invalid Table'}
+                    </h1>
+                    <p className="text-gray-500 mb-6">{error || 'This table does not exist or an unexpected error occurred.'}</p>
+                    <button
+                        onClick={() => { setError(null); fetchTableStatus(); }}
+                        className="w-full bg-[#3D2B24] text-white py-3 rounded-xl font-bold hover:bg-[#2D1B14] transition-colors"
+                    >
+                        Try Again
+                    </button>
                 </div>
             </div>
         );
