@@ -20,7 +20,7 @@ const Navbar = () => {
   return (
     <nav className={styles.navbar}>
       <div className={styles.logo} onClick={() => scrollTo('hero')}>
-        ☕ Café OS
+        <span>Café</span> OS
       </div>
 
       <button

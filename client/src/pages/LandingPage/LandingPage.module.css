@@ -1,6 +1,7 @@
 .page {
-  font-family: 'Inter', 'Poppins', system-ui, sans-serif;
-  color: #3E2723;
+  font-family: 'Inter', 'Playfair Display', system-ui, sans-serif;
+  color: #3D2B1F;
+  background-color: #FDFBF7;
   min-height: 100vh;
   display: flex;
   flex-direction: column;

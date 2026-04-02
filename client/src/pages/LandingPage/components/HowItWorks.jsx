@@ -1,10 +1,11 @@
+import { UserPlus, LayoutGrid, QrCode, Zap } from 'lucide-react';
 import styles from './HowItWorks.module.css';
 
 const steps = [
-  { number: '01', icon: '✍️', title: 'Café Owner Signs Up', description: 'Register your café on Café OS in under 2 minutes.' },
-  { number: '02', icon: '🍽️', title: 'Create Digital Menu', description: 'Add your menu items, categories, prices and images.' },
-  { number: '03', icon: '📲', title: 'Customers Scan QR', description: 'Customers scan the QR code at their table to view your menu.' },
-  { number: '04', icon: '⚡', title: 'Orders Managed Digitally', description: 'Orders arrive instantly on your dashboard — no paper needed.' },
+  { number: '01', icon: <UserPlus size={24} />, title: 'Café Owner Signs Up', description: 'Register your café on Café OS in under 2 minutes.' },
+  { number: '02', icon: <LayoutGrid size={24} />, title: 'Create Digital Menu', description: 'Add your menu items, categories, prices and images.' },
+  { number: '03', icon: <QrCode size={24} />, title: 'Customers Scan QR', description: 'Customers scan the QR code at their table to view your menu.' },
+  { number: '04', icon: <Zap size={24} />, title: 'Orders Managed Digitally', description: 'Orders arrive instantly on your dashboard — no paper needed.' },
 ];
 
 const HowItWorks = () => {

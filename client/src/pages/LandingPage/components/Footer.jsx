@@ -6,7 +6,7 @@ const Footer = () => {
       <div className={styles.inner}>
 
         <div className={styles.brand}>
-          <span className={styles.logo}>☕ Café OS</span>
+          <span className={styles.logo}>Café OS</span>
           <p className={styles.tagline}>
             A smart SaaS platform helping cafés manage digital menus,
             orders, rewards and customer relationships.
@@ -17,10 +17,10 @@ const Footer = () => {
           <h4 className={styles.colTitle}>Contact</h4>
           <ul className={styles.list}>
             <li>
-              <a href="mailto:support@cafeos.com">✉ support@cafeos.com</a>
+              <a href="mailto:support@cafeos.com">support@cafeos.com</a>
             </li>
             <li>
-              <a href="tel:+91XXXXXXXXXX">📞 +91 XXXXX XXXXX</a>
+              <a href="tel:+91XXXXXXXXXX">+91 XXXXX XXXXX</a>
             </li>
           </ul>
         </div>
@@ -37,9 +37,9 @@ const Footer = () => {
         <div className={styles.col}>
           <h4 className={styles.colTitle}>Follow Us</h4>
           <ul className={styles.list}>
-            <li><a href="#" target="_blank" rel="noreferrer">📸 Instagram</a></li>
-            <li><a href="#" target="_blank" rel="noreferrer">💼 LinkedIn</a></li>
-            <li><a href="#" target="_blank" rel="noreferrer">🐦 Twitter</a></li>
+            <li><a href="#" target="_blank" rel="noreferrer">Instagram</a></li>
+            <li><a href="#" target="_blank" rel="noreferrer">LinkedIn</a></li>
+            <li><a href="#" target="_blank" rel="noreferrer">Twitter</a></li>
           </ul>
         </div>
 

@@ -1,29 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
+import { QrCode, ShoppingCart, Gift, Star, BarChart3 } from 'lucide-react';
 import styles from './Features.module.css';
 
 const features = [
   {
-    icon: '📱',
+    icon: <QrCode size={32} />,
     title: 'QR Digital Menu',
     description: 'Customers scan a QR code to instantly view the full digital menu — no app needed.',
   },
   {
-    icon: '🛒',
+    icon: <ShoppingCart size={32} />,
     title: 'Smart Ordering System',
     description: 'Customers place orders digitally, reducing wait times and manual errors.',
   },
   {
-    icon: '🎁',
+    icon: <Gift size={32} />,
     title: 'Gamified Rewards',
     description: 'Customers earn loyalty points on every order and unlock exciting rewards.',
   },
   {
-    icon: '⭐',
+    icon: <Star size={32} />,
     title: 'Customer Reviews',
     description: 'Collect ratings and feedback to continuously improve your café experience.',
   },
   {
-    icon: '📊',
+    icon: <BarChart3 size={32} />,
     title: 'CRM System',
     description: 'Café owners manage customer relationships, preferences, and visit history.',
   },
@@ -72,9 +73,8 @@ const Features = () => {
       <div className={styles.grid}>
         {features.map((f, index) => (
           <div
-            className={`${styles.card} ${isVisible ? styles.visible : ''} ${
-              index % 2 === 0 ? styles.fromLeft : styles.fromRight
-            }`}
+            className={`${styles.card} ${isVisible ? styles.visible : ''} ${index % 2 === 0 ? styles.fromLeft : styles.fromRight
+              }`}
             key={f.title}
             onMouseEnter={centerCard}
             style={{ '--enter-delay': `${index * 140}ms` }}

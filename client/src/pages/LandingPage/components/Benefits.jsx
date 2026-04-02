@@ -1,23 +1,24 @@
+import { Zap, Users, BookOpen, MessageSquare } from 'lucide-react';
 import styles from './Benefits.module.css';
 
 const benefits = [
   {
-    icon: '⚡',
+    icon: <Zap size={24} />,
     title: 'Faster Ordering',
     description: 'Digital ordering reduces wait times and improves service efficiency across your café.',
   },
   {
-    icon: '🤝',
+    icon: <Users size={24} />,
     title: 'Better Customer Engagement',
     description: 'Reward systems and reviews help build stronger, lasting relationships with customers.',
   },
   {
-    icon: '📋',
+    icon: <BookOpen size={24} />,
     title: 'Digital Menu System',
     description: 'Easily update menus anytime — no printing costs, no delays.',
   },
   {
-    icon: '💬',
+    icon: <MessageSquare size={24} />,
     title: 'Customer Feedback Collection',
     description: 'Collect ratings and reviews to continuously improve your service quality.',
   },
