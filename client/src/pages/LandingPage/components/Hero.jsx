@@ -9,48 +9,59 @@ const Hero = () => {
       <div className={styles.content}>
         <div className={styles.copy}>
           <div className={styles.badge}>Built for Modern Cafes</div>
-          <h1 className={styles.title}>Run Your Cafe Digitally with Cafe OS</h1>
+          <h1 className={styles.title}>
+            Run your café <span className={styles.accentText}>Digitally</span>
+          </h1>
           <p className={styles.description}>
-            Cafe OS helps cafe owners manage QR menus, smart orders, loyalty rewards,
-            and customer engagement from one clean dashboard.
+            Elevate your guest experience. Manage digital menus, smart orders, and loyalty rewards from one intuitive dashboard.
           </p>
           <div className={styles.actions}>
             <button
               className={styles.btnPrimary}
               type="button"
-              onClick={() => navigate('/login')}
+              onClick={() => navigate('/signup')}
             >
-              Login
+              Get Started
             </button>
             <button
               className={styles.btnSecondary}
               type="button"
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/login')}
             >
-              Signup
+              Owner Login
             </button>
           </div>
-          <div className={styles.meta}>No setup hassle. Launch your digital cafe flow in minutes.</div>
+          <div className={styles.meta}>Trusted by 120+ modern cafés.</div>
         </div>
 
         <div className={styles.visualWrap} aria-hidden="true">
-          <div className={styles.heroVisualInner}>
-            <img
-              src="/images/hero-visual.png"
-              alt="Premium Cafe OS Dashboard"
-              className={styles.premiumImage}
-            />
-
-            <div className={styles.glassCard}>
-              <div className={styles.glassStat}>
-                <span className={styles.statLabel}>Revenue</span>
-                <span className={styles.statValue}>+24%</span>
-              </div>
+          <div className={styles.visualFlow}>
+            <div className={styles.heroVisualInner}>
+              <img
+                src="/images/hero-visual.png"
+                alt="Premium Cafe OS Dashboard"
+                className={styles.premiumImage}
+              />
+            </div>
+            <div className={styles.floatingCard1}>
+              <div className={styles.statLabel}>Orders processed</div>
+              <div className={styles.statValue}>1,280+</div>
+            </div>
+            <div className={styles.floatingCard2}>
+              <div className={styles.statLabel}>Avg satisfaction</div>
+              <div className={styles.statValue}>4.9/5</div>
             </div>
           </div>
         </div>
       </div>
+
+      <div className={styles.wavyDivider}>
+        <svg viewBox="0 0 1440 120" preserveAspectRatio="none" style={{ background: 'transparent' }}>
+          <path d="M0,96L80,85.3C160,75,320,53,480,53.3C640,53,800,75,960,80C1120,85,1280,75,1360,69.3L1440,64L1440,120L1360,120C1280,120,1120,120,960,120C800,120,640,120,480,120C320,120,160,120,80,120L0,120Z" fill="#ffffff" />
+        </svg>
+      </div>
     </section>
+
   );
 };
 

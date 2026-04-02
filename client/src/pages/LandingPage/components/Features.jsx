@@ -28,6 +28,11 @@ const features = [
     title: 'CRM System',
     description: 'Café owners manage customer relationships, preferences, and visit history.',
   },
+  {
+    icon: <ShoppingCart size={32} />,
+    title: 'Inventory Tracking',
+    description: 'Keep track of your stock levels and get automated alerts when supplies run low.',
+  },
 ];
 
 const Features = () => {

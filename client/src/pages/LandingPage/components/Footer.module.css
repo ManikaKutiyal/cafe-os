@@ -1,52 +1,53 @@
 .footer {
   background: #1A120B;
-  padding: 8rem 5% 0;
+  padding: 10rem 5% 0;
   font-family: 'Inter', system-ui, sans-serif;
+  position: relative;
 }
 
 .inner {
   display: grid;
-  grid-template-columns: minmax(280px, 2fr) repeat(3, minmax(140px, 1fr));
-  gap: 4rem;
-  max-width: 1280px;
+  grid-template-columns: minmax(300px, 2fr) repeat(3, minmax(140px, 1fr));
+  gap: 5rem;
+  max-width: 1400px;
   margin: 0 auto;
-  padding-bottom: 5rem;
-  border-bottom: 1px solid rgba(253, 251, 247, 0.05);
+  padding-bottom: 6rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .brand {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 2rem;
 }
 
 .logo {
   font-family: 'Playfair Display', serif;
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: #FDFBF7;
-  letter-spacing: -0.02em;
+  font-size: 2rem;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.04em;
 }
 
 .tagline {
-  font-size: 0.95rem;
+  font-size: 1rem;
   color: #8C7E74;
   line-height: 1.8;
   margin: 0;
-  max-width: 320px;
+  max-width: 340px;
 }
 
 .col {
   display: flex;
   flex-direction: column;
-  gap: 1.8rem;
+  gap: 2rem;
 }
 
 .colTitle {
   font-family: 'Playfair Display', serif;
-  font-size: 1rem;
-  font-weight: 700;
-  color: #FDFBF7;
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #ffffff;
   margin: 0;
 }
 
@@ -56,41 +57,47 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 0.8rem;
+  gap: 1rem;
 }
 
 .list li a {
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   color: #8C7E74;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.4s ease;
 }
 
 .list li a:hover {
-  color: #FDFBF7;
+  color: #ffffff;
+  transform: translateX(8px);
 }
 
 .bottom {
   text-align: center;
-  font-size: 0.8rem;
-  color: #4D3D33;
-  padding: 2.5rem 0;
-  max-width: 1280px;
+  font-size: 0.85rem;
+  color: rgba(140, 126, 116, 0.4);
+  padding: 3rem 0;
+  max-width: 1400px;
   margin: 0 auto;
-  letter-spacing: 0.5px;
+  letter-spacing: 2px;
   text-transform: uppercase;
+  font-weight: 700;
 }
 
 @media (max-width: 1024px) {
   .inner {
     grid-template-columns: 1fr 1fr;
-    gap: 3rem;
+    gap: 4rem;
   }
 }
 
 @media (max-width: 640px) {
   .inner {
     grid-template-columns: 1fr;
-    gap: 2.5rem;
+    gap: 3.5rem;
+  }
+
+  .footer {
+    padding-top: 8rem;
   }
 }

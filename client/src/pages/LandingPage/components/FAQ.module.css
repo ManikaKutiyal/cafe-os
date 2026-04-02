@@ -1,0 +1,116 @@
+.section {
+    padding: 7rem 5%;
+    background: #ffffff;
+    position: relative;
+}
+
+.header {
+    text-align: center;
+    margin-bottom: 5rem;
+}
+
+.badge {
+    display: inline-block;
+    background: rgba(127, 85, 57, 0.04);
+    color: #7f5539;
+    border: 1px solid rgba(127, 85, 57, 0.1);
+    padding: 0.6rem 1.6rem;
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    margin-bottom: 2rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.8rem, 6vw, 4.2rem);
+    font-weight: 900;
+    color: #1A120B;
+    margin-bottom: 2rem;
+    letter-spacing: -0.04em;
+}
+
+.subtitle {
+    font-size: 1.2rem;
+    color: #4D3D33;
+    max-width: 620px;
+    margin: 0 auto;
+    line-height: 1.9;
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.item {
+    background: #ffffff;
+    border: 1.5px solid rgba(0, 0, 0, 0.03);
+    border-radius: 24px;
+    padding: 2rem 2.5rem;
+    cursor: pointer;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.item:hover {
+    border-color: rgba(127, 85, 57, 0.2);
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.03);
+}
+
+.active {
+    border-color: #7f5539;
+    box-shadow: 0 20px 45px rgba(127, 85, 57, 0.06);
+}
+
+.questionWrap {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2rem;
+}
+
+.question {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #1A120B;
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+.icon {
+    color: #7f5539;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.5s ease;
+}
+
+.active .icon {
+    transform: rotate(180deg);
+}
+
+.answerWrap {
+    overflow: hidden;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.answer {
+    font-size: 1.05rem;
+    color: #4D3D33;
+    line-height: 1.85;
+    margin: 1.5rem 0 0.5rem;
+    max-width: 95%;
+}
+
+@media (max-width: 768px) {
+    .section {
+        padding: 8rem 5%;
+    }
+}

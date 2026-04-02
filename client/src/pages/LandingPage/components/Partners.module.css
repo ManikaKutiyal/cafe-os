@@ -1,0 +1,61 @@
+.section {
+    padding: 2rem 5% 4rem;
+    background: #ffffff;
+    position: relative;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.label {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #8C7E74;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 2rem;
+}
+
+
+.grid {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5rem;
+    opacity: 0.4;
+    transition: opacity 0.5s ease;
+}
+
+.grid:hover {
+    opacity: 0.8;
+}
+
+.logo {
+    height: clamp(24px, 4vw, 36px);
+    max-width: 180px;
+    filter: grayscale(100%) invert(0);
+    transition: all 0.5s ease;
+}
+
+.logo:hover {
+    filter: grayscale(0%);
+    transform: scale(1.1);
+}
+
+@media (max-width: 768px) {
+    .section {
+        padding: 4rem 5% 6rem;
+    }
+
+    .grid {
+        gap: 3rem;
+    }
+
+    .logo {
+        height: 20px;
+    }
+}
